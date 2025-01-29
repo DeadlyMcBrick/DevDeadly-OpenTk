@@ -13,6 +13,7 @@ namespace DevDeadly
         public int Handle;
         private bool disposedValue = false;
         public int programID;
+        int shaderProgram;
 
         public Shader(string vertexShaderSource, string fragmentShaderSource)
         {
@@ -78,23 +79,23 @@ namespace DevDeadly
             GL.Uniform1(location, value);
         }
 
-        internal void SetMatrix(string name, Matrix4 matrix)
-        {
-            // Obtener la ubicación del uniforme en el shader
-            int location = GL.GetUniformLocation(Handle, name);
+        //internal void SetMatrix(string name, Matrix4 matrix)
+        //{
+        //    // Obtener la ubicación del uniforme en el shader
+        //    int location = GL.GetUniformLocation(Handle, name);
 
-        //    // Verificar si el uniforme existe en el shader
-        //    if (location != -1)
-        //    {
-        //        // Pasar la matriz al shader
-        //        GL.UniformMatrix4(location, false, ref matrix);
-        //    }
-        //    else
-        //    {
-        //        // Si no se encuentra el uniforme, mostrar un mensaje de error
-        //        Console.WriteLine($"Uniform '{name}' no encontrado en el shader.");
-        //    }
-        }
+        ////    // Verificar si el uniforme existe en el shader
+        ////    if (location != -1)
+        ////    {
+        ////        // Pasar la matriz al shader
+        ////        GL.UniformMatrix4(location, false, ref matrix);
+        ////    }
+        ////    else
+        ////    {
+        ////        // Si no se encuentra el uniforme, mostrar un mensaje de error
+        ////        Console.WriteLine($"Uniform '{name}' no encontrado en el shader.");
+        ////    }
+        //}
 
         //Destructor to detect potential memory leaks. Well for my CPU performance
         ~Shader()
@@ -107,8 +108,9 @@ namespace DevDeadly
 
         public void SetMatrix4(string name, Matrix4 matrix)
         {
-            int location = GL.GetUniformLocation(programID, name);
-            GL.UniformMatrix4(location, false, ref matrix);
+            GL.UseProgram(shaderProgram);
+            int location = GL.GetUniformLocation(Handle, name);
+            GL.UniformMatrix4(location, true, ref matrix);
         }
 
 

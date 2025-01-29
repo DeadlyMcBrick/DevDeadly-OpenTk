@@ -29,7 +29,7 @@ namespace DevDeadly
         public Shader shader;
 
 
-        public const float speed = 1.5f;
+        public const float speed = 0.100f;
 
         //int nextTime ups= 0; 
 
@@ -44,16 +44,18 @@ namespace DevDeadly
 
         layout(location = 0) in vec3 aPosition;
         layout(location = 1) in vec2 aTexCoord;
+        
+        out vec2 texCoord;
 
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
 
-        out vec2 texCoord;
-        void main(void)
+        void main()
         {
             texCoord = aTexCoord;
-         gl_Position =  vec4(aPosition, 1.0) * model * view * projection;
+         gl_Position = vec4(aPosition, 1.0) * model * view * projection;
+         texCoord = aTexCoord;
         }";
 
         string fragmentShaderSource = @"
@@ -71,18 +73,53 @@ namespace DevDeadly
             // Mezclar las texturas
             vec4 color1 = texture(texture0, texCoord);
             vec4 color2 = texture(texture1, texCoord);
-            FragColor = mix(color1, color2, 0.15);
+            FragColor = mix(color1, color2, 0.4);
          }";
 
         // Vertex data
-        private readonly float[] vertices =
-        {
-            //Position          Texture coordinates
-         0.5f,  0.5f, 0.0f, 1.0f, 1.0f, // top right
-         0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // bottom left
-        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f,  // top left
-        };
+        private readonly float[] vertices = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+};
 
         private readonly uint[] indices =
         {
@@ -100,8 +137,15 @@ namespace DevDeadly
         int VertexBufferObject;
         int ElementBufferObject;
         int nrAttribute = 0;
-        public int width;
-        public int height;
+        int width, height;
+
+        // ROTATION Y
+        float yRot;
+
+        //ROTATION X
+        float xRot;
+
+
         public Texture texture;
         public Texture texture2;
 
@@ -156,7 +200,7 @@ namespace DevDeadly
             if (input.IsKeyDown(Keys.C))
                 Console.Write("");
 
-            Matrix4 view = Matrix4.LookAt(position, position + front, up);
+            //Matrix4 view = Matrix4.LookAt(position, position + front, up);
             //shader.SetMatrix("view", view);
 
             //Keybinds to detect if this is actually is being pressed...
@@ -164,27 +208,20 @@ namespace DevDeadly
             if (KeyboardState.IsKeyDown(Keys.A)) Console.WriteLine("A pressed");
             if (KeyboardState.IsKeyDown(Keys.S)) Console.WriteLine("S pressed");
             if (KeyboardState.IsKeyDown(Keys.D)) Console.WriteLine("D pressed");
-            if (KeyboardState.IsKeyDown(Keys.Q)) Console.WriteLine("Laying left");
-            if (KeyboardState.IsKeyDown(Keys.E)) Console.WriteLine("Laying right");
-            if (KeyboardState.IsKeyDown(Keys.R)) Console.WriteLine("Reloading...");
-            if (KeyboardState.IsKeyDown(Keys.Q)) Console.WriteLine("Laying left position");
+            if (KeyboardState.IsKeyDown(Keys.Escape))
+            {
+                Close();
+            }
 
-            // Close the window when Escape is pressed
+            if(KeyboardState.IsKeyDown(Keys.F))
+            {
+                WindowState = WindowState == WindowState.Fullscreen ? WindowState.Normal : WindowState.Fullscreen;
+            }
         }
+
         protected override void OnLoad()
         {
             base.OnLoad();
-
-            //Camera settings
-            //is not being called from here...
-
-            OpenTK.Mathematics.Vector3 cameraTarget = OpenTK.Mathematics.Vector3.Zero;
-            OpenTK.Mathematics.Vector3 cameraDirection = OpenTK.Mathematics.Vector3.Normalize(position - cameraTarget);
-
-            // Calculate Right and Up Axes
-            cameraRight = OpenTK.Mathematics.Vector3.Normalize(OpenTK.Mathematics.Vector3.Cross(up, cameraDirection));
-            cameraUp = OpenTK.Mathematics.Vector3.Normalize(OpenTK.Mathematics.Vector3.Cross(cameraDirection, cameraRight));
-            // Set LookAt Matrix
 
             VertexArrayObject = GL.GenVertexArray();
             VertexBufferObject = GL.GenBuffer();
@@ -197,14 +234,12 @@ namespace DevDeadly
             texture = new Texture(imagePath);
             texture.Use(TextureUnit.Texture0);
 
-            string imagePath2 = "Images/awesomeface.png";
+            string imagePath2 = "Images/container.jpg";
             texture2 = new Texture(imagePath2);
             texture2.Use(TextureUnit.Texture1);
 
             //To being able to put both images in the render have to check it if i have another shader.use
             shader.Use();
-
-            //shader.SetMatrix4("view", view);
 
             //being able to use the function for the frags
             shader.SetInt("texture0", 0);
@@ -225,7 +260,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
 
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //separate to the other buffer and shader info...
@@ -247,17 +282,6 @@ namespace DevDeadly
             GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(texCoordLocation);
 
-            //Model center
-            //Matrix4.CreateOrthographicOffCenter(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
-
-            //Model Matrix
-            Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
-
-            //View Matrix
-            Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, 3.0f);
-
-            //Projection Matrix
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), (float) width / (float) height, 0.1f, 100.0f);
 
             //Structure all the info for the buffer and stuff bla....
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -267,11 +291,6 @@ namespace DevDeadly
             GL.GetInteger(GetPName.MaxVertexAttribs, out nrAttribute);
 
             shader.Use();
-
-            shader.SetMatrix("model", model);
-            shader.SetMatrix("projection", projection);
-            shader.SetMatrix("view", view);
-
             timer.Start();
         }
         protected override void OnUnload()
@@ -299,8 +318,34 @@ namespace DevDeadly
                 float greenValue = (float)Math.Sin(timeValue) / 2.0f + 0.5f;
                 GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
             }
+
+            Matrix4 model = Matrix4.Identity;
+            Matrix4 view = Matrix4.Identity;                                                            // width / height
+            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), (float) 90.1f / (float) 90.1f, 0.9f, 100.0f);
+
+            model = Matrix4.CreateRotationY(yRot);
+            yRot += 0.001f;
+
+            view = Matrix4.CreateRotationX(xRot);
+            xRot += 0.001f;
+
+            //view = Matrix4.CreateRotationX(xRot);
+            //xRot += 0.01f;
+
+           //Matrix4 translation = Matrix4.CreateTranslation(0f, 0f, -3f);
+           // model *= translation;
+
+            //define here but not as shaderProgram, cause otherwise is not going to work.
+            int modelLocation = GL.GetUniformLocation(shader.Handle, "model");
+            int viewLocation = GL.GetUniformLocation(shader.Handle, "view");
+            int projectionLocation = GL.GetUniformLocation(shader.Handle, "projection");
+
+            GL.UniformMatrix4(modelLocation, false, ref model);
+            GL.UniformMatrix4(viewLocation, false, ref view);
+            GL.UniformMatrix4(projectionLocation, false, ref projection);
+
             GL.UseProgram(shaderProgram);
-            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.BindVertexArray(VertexArrayObject);
 
             //If I wanna render 2 images dont use shader here.
@@ -310,8 +355,10 @@ namespace DevDeadly
             texture.Use(TextureUnit.Texture0);
             texture2.Use(TextureUnit.Texture1);
 
+            GL.Enable(EnableCap.DepthTest);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
             Context.SwapBuffers();
