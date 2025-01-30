@@ -10,35 +10,19 @@ using OpenTK.Mathematics;
 using NumericsVector3 = System.Numerics.Vector3;
 using OpenTKVector3 = OpenTK.Mathematics.Vector3;
 using System.Reflection;
-
+using Vector3 = OpenTK.Mathematics.Vector3;
 
 namespace DevDeadly
 {
     public class Game : GameWindow
     {
-        private OpenTKVector3 position = new OpenTKVector3(0.0f, 0.0f, 3.0f);
-        private OpenTKVector3 front = new OpenTKVector3(0.0f, 0.0f, -1.0f);
-        private OpenTKVector3 up = OpenTKVector3.UnitY;
-
-        private OpenTKVector3 cameraRight;
-        private OpenTKVector3 cameraUp;
-
-
-        //private CameraSettings.Settings cameraSettings;
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
-
-
-        public const float speed = 0.100f;
-
-        //int nextTime ups= 0; 
-
 
         //Define separate for the other shader shit
         int shaderProgram;
 
         // Define the vertex and fragment shader sources
-
         string vertexShaderSource = @"
         #version 330 core
 
@@ -53,9 +37,8 @@ namespace DevDeadly
 
         void main()
         {
+            gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
             texCoord = aTexCoord;
-         gl_Position = vec4(aPosition, 1.0) * model * view * projection;
-         texCoord = aTexCoord;
         }";
 
         string fragmentShaderSource = @"
@@ -126,6 +109,7 @@ namespace DevDeadly
              0, 1, 3,  // Primer triángulo (superior derecho)
              1, 2, 3   // Segundo triángulo (inferior izquierdo)
         };
+
         //do the twiceShaders connect it to one
         private readonly float[] texCoords = {
         0.0f, 0.0f,  // lower-left corner  
@@ -138,6 +122,7 @@ namespace DevDeadly
         int ElementBufferObject;
         int nrAttribute = 0;
         int width, height;
+        Camera camera;
 
         // ROTATION Y
         float yRot;
@@ -153,55 +138,26 @@ namespace DevDeadly
         public Matrix4 view;
         public Matrix4 projection;
 
+
         // Configuration for the window
         public Game(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings()
         {
-            Size = (width, height),
+            Size = (X: width, Y: height),
             Title = title
         })
-        { }
+
+        { 
+         this.width = width; this.height = height;
+        }
 
         //Keybinds (Being able to drop some menu to being able to change in the future idk)
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            base.OnUpdateFrame(e);
-
-            //Movements make sure to change them
-
-            if (!IsFocused)
-            {
-                return;
-            }
-            //being able to change the spped to by a OpenGL settings
+            MouseState mouse = MouseState;
             KeyboardState input = KeyboardState;
-            float delta = (float)e.Time;
 
-            if (input.IsKeyDown(Keys.W))
-                position += front * speed * delta;
-
-            if (input.IsKeyDown(Keys.S))
-                position -= front * speed * delta;
-
-            if (input.IsKeyDown(Keys.A))
-                position -= cameraRight * speed * delta;
-
-            if (input.IsKeyDown(Keys.D))
-                position += cameraRight * speed * delta;
-
-            if (input.IsKeyDown(Keys.Space))
-                position += up * speed * delta;
-
-            if (input.IsKeyDown(Keys.LeftShift))
-                position -= up * speed * delta;
-
-            if (input.IsKeyDown(Keys.K))
-                position += up * speed * delta;
-
-            if (input.IsKeyDown(Keys.C))
-                Console.Write("");
-
-            //Matrix4 view = Matrix4.LookAt(position, position + front, up);
-            //shader.SetMatrix("view", view);
+            base.OnUpdateFrame(e);
+            camera.Update(input, mouse, e);    
 
             //Keybinds to detect if this is actually is being pressed...
             if (KeyboardState.IsKeyDown(Keys.W)) Console.WriteLine("W pressed");
@@ -282,6 +238,8 @@ namespace DevDeadly
             GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(texCoordLocation);
 
+            camera = new Camera(width, height, Vector3.Zero);
+            CursorState = CursorState.Grabbed;
 
             //Structure all the info for the buffer and stuff bla....
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -306,7 +264,7 @@ namespace DevDeadly
         {
             base.OnRenderFrame(args);
 
-
+            //Change this thing to the Shader.cs
             int vertexColorLocation = GL.GetUniformLocation(shader.Handle, "ourColor");
             if (vertexColorLocation == -1)
             {
@@ -320,36 +278,27 @@ namespace DevDeadly
             }
 
             Matrix4 model = Matrix4.Identity;
-            Matrix4 view = Matrix4.Identity;                                                            // width / height
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), (float) 90.1f / (float) 90.1f, 0.9f, 100.0f);
+            Matrix4 view = camera.GetViewMatrix();
+            Matrix4 projection = camera.GetProjectionMatrix();
 
-            model = Matrix4.CreateRotationY(yRot);
+            //Rotacion model
+            model = Matrix4.CreateRotationY(yRot) * Matrix4.CreateTranslation(0f, 0f, -5f);
             yRot += 0.001f;
-
-            view = Matrix4.CreateRotationX(xRot);
-            xRot += 0.001f;
-
-            //view = Matrix4.CreateRotationX(xRot);
-            //xRot += 0.01f;
-
-           //Matrix4 translation = Matrix4.CreateTranslation(0f, 0f, -3f);
-           // model *= translation;
 
             //define here but not as shaderProgram, cause otherwise is not going to work.
             int modelLocation = GL.GetUniformLocation(shader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(shader.Handle, "view");
             int projectionLocation = GL.GetUniformLocation(shader.Handle, "projection");
 
-            GL.UniformMatrix4(modelLocation, false, ref model);
-            GL.UniformMatrix4(viewLocation, false, ref view);
-            GL.UniformMatrix4(projectionLocation, false, ref projection);
+            GL.UniformMatrix4(modelLocation, true, ref model);
+            GL.UniformMatrix4(viewLocation, true, ref view);
+            GL.UniformMatrix4(projectionLocation, true, ref projection);
 
             GL.UseProgram(shaderProgram);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.BindVertexArray(VertexArrayObject);
 
             //If I wanna render 2 images dont use shader here.
-
             shader.Use();
 
             texture.Use(TextureUnit.Texture0);
