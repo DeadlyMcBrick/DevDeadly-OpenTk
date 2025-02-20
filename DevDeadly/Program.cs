@@ -8,5 +8,5 @@ class Program
         {
             game.Run();
         }
-    }
+    } 
 }

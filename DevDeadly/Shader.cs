@@ -113,6 +113,20 @@ namespace DevDeadly
             GL.UniformMatrix4(location, true, ref matrix);
         }
 
+        public void SetVector3(string name, Vector3 vector)
+        {
+            int location = GL.GetUniformLocation(Handle, name);
+            if (location != -1)
+            {
+                GL.Uniform3(location, vector);
+            }
+            else
+            {
+                Console.WriteLine($"Uniform '{name}' no encontrado en el shader.");
+            }
+        }
+
+
 
     }
 }

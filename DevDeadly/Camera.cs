@@ -12,10 +12,10 @@ namespace DevDeadly
     internal class Camera
     {
         // CONSTANTS
-        private float SPEED = 8f;
+        private float SPEED = 16f;
         private float SCREENWIDTH;
         private float SCREENHEIGHT;
-        private float SENSITIVITY = 1f;
+        private float SENSITIVITY = 9f;
 
         // position vars
         public Vector3 position;
@@ -91,7 +91,7 @@ namespace DevDeadly
             {
                 position.Y += SPEED * (float)e.Time;
             }
-            if (input.IsKeyDown(Keys.LeftShift))
+            if (input.IsKeyDown(Keys.LeftControl))
             {
                 position.Y -= SPEED * (float)e.Time;
             }
