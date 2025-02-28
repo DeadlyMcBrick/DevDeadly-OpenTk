@@ -15,6 +15,7 @@ namespace DevDeadly
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
         public Shader lightingShader;
+        public Shader lampShader;
 
         //Define separate for the other shader shit
         int shaderProgram;
@@ -24,35 +25,43 @@ namespace DevDeadly
         #version 330 core
 
         layout(location = 0) in vec3 aPosition;
-        layout(location = 1) in vec2 aTexCoord;
+        layout(location = 1) in vec3 aNormal;
         
-        out vec2 texCoord;
-
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
-
+        
+        out vec3 Normal;
+        out vec3 FragPos;
+        
         void main()
         {
-            gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
-            texCoord = aTexCoord;
+            gl_Position =  vec4(aPosition, 1.0) * model * view * projection; 
+            FragPos = vec3(vec4(aPosition, 1.0) * model);
+            Normal = aNormal * mat3(transpose(inverse(model)));
+
         }";
 
         string fragmentShaderSource = @"
         #version 330 core
         
         out vec4 FragColor;
-
+        
         uniform vec3 objectColor;
         uniform vec3 lightColor;
 
         void main()
         {
-            FragColor = vec4(1.0);
-            FragColor = vec4(lightColor * objectColor, 1.0);
+
+        FragColor = vec4(1.0);
+        FragColor = vec4(lightColor * objectColor, 1.0);
+
         }";
 
-        //   in vec2 texCoord;
+        //FragColor = vec4(1.0);
+        //FragColor = vec4(lightColor* objectColor, 1.0);
+
+        //in vec2 texCoord;
 
         //uniform sampler2D texture0;
         //uniform sampler2D texture1;
@@ -61,9 +70,45 @@ namespace DevDeadly
         //vec4 color2 = texture(texture1, texCoord);
         //FragColor = mix(color1, color2, 0.4);
 
+        string lightingShaderSource = @"
+        #version 330 core
+        out vec4 FragColor;
+
+         uniform vec3 objectColor;
+         uniform vec3 lightColor;
+         uniform vec3 lightPos;
+         uniform vec3 viewPos;
+
+        in vec3 Normal;
+        in vec3 FragPos;
+
+        void main ()
+        {
+
+         float ambientStrength = 0.1;
+         vec3 ambient = ambientStrength * lightColor;
+
+         vec3 norm = normalize(Normal);
+         vec3 lightDir = normalize(lightPos - FragPos);
+
+         float diff = max(dot(norm, lightDir), 0.0);
+         vec3 diffuse = diff * lightColor;    
+
+         float specularStrength = 0.5;
+         vec3 viewDir = normalize (viewPos - FragPos);
+         vec3 reflectDir = reflect(-lightDir, norm);
+
+         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
+         vec3 specular = specularStrength * spec * lightColor;
+
+         vec3 result = (ambient + diffuse + specular) * objectColor;
+         FragColor = vec4(result, 1.0);
+
+        }";
 
         // Vertex data
-        private readonly float[] vertices = {
+     private readonly float[] vertices = {
+
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -107,13 +152,11 @@ namespace DevDeadly
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-        private readonly Vector3 lightPos = new Vector3(1.2f, 1.0f, 2.0f);
-
-
+        public readonly Vector3 lightPos = new Vector3(1.2f, 1.0f, 2.0f);
         private readonly uint[] indices =
         {
-             0, 1, 3,  // Primer triángulo (superior derecho)
-             1, 2, 3   // Segundo triángulo (inferior izquierdo)
+             0, 1, 3,  // First 
+             1, 2, 3   // Second triangule
         };
 
         //do the twiceShaders connect it to one
@@ -154,7 +197,6 @@ namespace DevDeadly
         { 
          this.width = width; this.height = height;
         }
-
         public struct Color4
         {
             public float R, G, B, A;
@@ -199,7 +241,6 @@ namespace DevDeadly
                 Close();
             }
         }
-
         protected override void OnLoad()
         {
             base.OnLoad();
@@ -214,7 +255,7 @@ namespace DevDeadly
             ElementBufferObject = GL.GenBuffer();
 
             //String path
-            shader = new Shader(vertexShaderSource, fragmentShaderSource);
+            shader = new Shader(vertexShaderSource, fragmentShaderSource, lightingShaderSource);
 
             string imagePath = "Images/container.jpg";
             texture = new Texture(imagePath);
@@ -254,7 +295,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //Background Color
-            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
             timer = Stopwatch.StartNew();
 
@@ -265,9 +306,9 @@ namespace DevDeadly
             GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
             GL.EnableVertexAttribArray(positionLocation);
 
-            int texCoordLocation = GL.GetAttribLocation(shader.Handle, "aTexCoord");
-            GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(texCoordLocation);
+            int normalLocation = GL.GetAttribLocation(shader.Handle, "aNormal");
+            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(positionLocation);
 
             camera = new Camera(width, height, Vector3.Zero);
             CursorState = CursorState.Grabbed;
@@ -293,6 +334,8 @@ namespace DevDeadly
         {
             base.OnUnload();
 
+
+
             GL.DeleteBuffer(VertexBufferObject);
             GL.DeleteBuffer(ElementBufferObject);
             GL.DeleteVertexArray(VertexArrayObject);
@@ -303,18 +346,6 @@ namespace DevDeadly
         {
             base.OnRenderFrame(args);
 
-            //Change this thing to the Shader.cs
-            int vertexColorLocation = GL.GetUniformLocation(shader.Handle, "ourColor");
-            if (vertexColorLocation == -1)
-            {
-                //I'll try the no string way to fix the frag/vert...
-            }
-            else
-            {
-                double timeValue = timer.Elapsed.TotalSeconds;
-                float greenValue = (float)Math.Sin(timeValue) / 2.0f + 0.5f;
-                GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-            }
             //Cube Model and rotation
             Matrix4 model = Matrix4.Identity;
             Matrix4 view = camera.GetViewMatrix();
@@ -328,8 +359,11 @@ namespace DevDeadly
             LampMatrix = Matrix4.CreateTranslation(lightPos);
 
             //Creation of the lights for the shadows blocks
+          
             shader.SetVector3("objectColor", new Vector3(1.0f, 0.5f, 0.31f));
             shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            shader.SetVector3("lightPos", lightPos);
+            shader.SetVector3("viewPos", camera.position);
 
             //Color projection 
             Color4 coral = new Color4(1.0f, 0.5f, 0.31f, 1.0f);
@@ -349,7 +383,7 @@ namespace DevDeadly
             int modelLocation = GL.GetUniformLocation(shader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(shader.Handle, "view");
             int projectionLocation = GL.GetUniformLocation(shader.Handle, "projection");
-
+           
             GL.UniformMatrix4(modelLocation, true, ref model);
             GL.UniformMatrix4(viewLocation, true, ref view);
             GL.UniformMatrix4(projectionLocation, true, ref projection);
@@ -374,14 +408,15 @@ namespace DevDeadly
 
             //White color
             shader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f)); 
-            shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f)); 
+            shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            shader.SetVector3("lightPos", lightPos);
+            shader.SetVector3("viewPos", camera.position);
 
             model += Matrix4.CreateTranslation(new Vector3(2f, 0f, 1f));
             GL.UniformMatrix4(modelLocation, true, ref LampMatrix);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
-            
 
             Context.SwapBuffers();
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -14,8 +15,11 @@ namespace DevDeadly
         private bool disposedValue = false;
         public int programID;
         int shaderProgram;
+        Shader shader;
+        private Stopwatch timer = Stopwatch.StartNew();
 
-        public Shader(string vertexShaderSource, string fragmentShaderSource)
+
+        public Shader(string vertexShaderSource, string fragmentShaderSource, string lightingShaderSource)
         {
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
             GL.ShaderSource(vertexShader, vertexShaderSource);
@@ -68,9 +72,9 @@ namespace DevDeadly
             GC.SuppressFinalize(this);
         }
 
-        public void GetAttribLocation()
+        public int GetAttribLocation(string name)
         {
-            Console.WriteLine("Is this fucking shit working now??");
+            return GL.GetAttribLocation(Handle, name);
         }
 
         public void SetInt(string name, int value)
@@ -78,6 +82,22 @@ namespace DevDeadly
             int location = GL.GetUniformLocation(Handle, name);
             GL.Uniform1(location, value);
         }
+
+        public void VertLocation(string name, int value)
+        {
+            int vertexColorLocation = GL.GetUniformLocation(shader.Handle, "ourColor");
+            if (vertexColorLocation == -1)
+            {
+                //I'll try the no string way to fix the frag/vert...
+            }
+            else
+            {
+                double timeValue = timer.Elapsed.TotalSeconds;
+                float greenValue = (float)Math.Sin(timeValue) / 2.0f + 0.5f;
+                GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+            }
+        }
+
 
         //internal void SetMatrix(string name, Matrix4 matrix)
         //{
@@ -125,8 +145,5 @@ namespace DevDeadly
                 Console.WriteLine($"Uniform '{name}' no encontrado en el shader.");
             }
         }
-
-
-
     }
 }
