@@ -28,12 +28,37 @@ namespace DevDeadly
                    point.Z >= Min.Z && point.Z <= Max.Z;
         }
     }
+
     public class Game : GameWindow
     {
+
+        public List<BoundingBox> GenerateTerrain(int width, int height, int depth)
+        {
+            List<BoundingBox> terrain = new List<BoundingBox>();
+
+            for (int x = -width / 2; x < width / 2; x++) 
+            {
+                for (int y = 0; y < height; y++)          
+                {
+                    for (int z = -depth / 2; z < depth / 2; z++) 
+                    {
+                        Vector3 min = new Vector3(x * 2.0f, y * 2.0f, z * 2.0f);
+                        Vector3 max = new Vector3((x + 1) * 2.0f, (y + 1) * 2.0f, (z + 1) * 2.0f);
+                        terrain.Add(new BoundingBox(min, max));
+                    }
+                }
+            }
+
+            return terrain;
+        }
+
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
         public Shader lightingShader;
         public Shader lampShader;
+        public List<BoundingBox> cubes;
+        public List<BoundingBox> cubes2;
+
 
         //Define separate for the other shader shit
         int shaderProgram;
@@ -259,23 +284,37 @@ namespace DevDeadly
                 Close();
             }
 
+            if (cubes != null)
+            {
+                Vector3 cameraPosition = camera.position;
+
+                foreach (var cube in cubes)
+                {
+                    if (cube.Intersects(cameraPosition))
+                    {
+                        Console.WriteLine("Colision detected");
+                    }
+                }
+            }
+
         }
         protected override void OnLoad()
         {
             base.OnLoad();
 
-            List<BoundingBox> cubes = new List<BoundingBox>()
+            int width = 10;
+            int height = 2;
+            int depth = 10;
+            cubes2 = GenerateTerrain(width, height, depth); 
+
+
+            cubes = new List<BoundingBox>()
 
             {
-                 new BoundingBox(new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, 1.0f, 1.0f)), 
-                 new BoundingBox(new Vector3(3.0f, -1.0f, -1.0f), new Vector3(5.0f, 1.0f, 1.0f))   
+                 new BoundingBox(new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, 1.0f, 1.0f)),
+                 new BoundingBox(new Vector3(3.0f, -1.0f, -1.0f), new Vector3(5.0f, 1.0f, 1.0f))
+
             };
-
-
-            ImGui.CreateContext();
-            ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-            ImGui.GetIO().Fonts.AddFontDefault();  // Default font for ImGui
-            ImGui.StyleColorsDark();  // O
 
             VertexArrayObject = GL.GenVertexArray();
             VertexBufferObject = GL.GenBuffer();
@@ -353,9 +392,6 @@ namespace DevDeadly
 
             GL.GetInteger(GetPName.MaxVertexAttribs, out nrAttribute);
 
-            //ImGui.End();
-            //ImGui.Render();
-
             shader.Use();
             timer.Start();
         }
@@ -363,12 +399,9 @@ namespace DevDeadly
         {
             base.OnUnload();
 
-
-
             GL.DeleteBuffer(VertexBufferObject);
             GL.DeleteBuffer(ElementBufferObject);
             GL.DeleteVertexArray(VertexArrayObject);
-
             shader.Dispose();
         }
         protected override void OnRenderFrame(FrameEventArgs args)
@@ -379,6 +412,8 @@ namespace DevDeadly
             Matrix4 model = Matrix4.Identity;
             Matrix4 view = camera.GetViewMatrix();
             Matrix4 projection = camera.GetProjectionMatrix();
+
+            Matrix4 outlineModel = Matrix4.CreateScale(1.05f) * model;
             
             ////Lamp configuration 
             //Matrix4 LampMatrix = Matrix4.Identity;
@@ -399,7 +434,6 @@ namespace DevDeadly
             //Color4 lightColor = new Color4(0.33f, 0.42f, 0.18f, 1.0f);
             //Color4 toyColor = new Color4(1.0f, 0.5f, 0.31f, 1.0f);
             //Color4 result = lightColor * toyColor;
-
 
             //Ilumination position
             //model = Matrix4.CreateRotationY(yRot) * Matrix4.CreateTranslation(2f, 4f, -5f);
@@ -426,8 +460,11 @@ namespace DevDeadly
             //If I wanna render 2 images dont use shader here.
             shader.Use();
 
+            foreach (var cube2 in cubes2) { 
+
             texture.Use(TextureUnit.Texture0);
             texture2.Use(TextureUnit.Texture1);
+
 
             GL.Enable(EnableCap.DepthTest);
             model = Matrix4.CreateTranslation(new Vector3(1f, 0f, 1f));
@@ -445,8 +482,9 @@ namespace DevDeadly
             GL.UniformMatrix4(modelLocation, true, ref model);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+        }
 
-            Context.SwapBuffers();
+        Context.SwapBuffers();
 
         }
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)

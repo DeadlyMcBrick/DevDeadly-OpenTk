@@ -44,7 +44,7 @@ namespace DevDeadly
 
         public Matrix4 GetProjectionMatrix()
         {
-            return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), SCREENWIDTH / SCREENHEIGHT, 0.1f, 100.0f);
+            return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(70.0f), SCREENWIDTH / SCREENHEIGHT, 0.1f, 100.0f);
         }
 
         private void UpdateVectors()
@@ -72,7 +72,7 @@ namespace DevDeadly
         {
             Vector3 newPosition = position;
 
-            // Detectar el movimiento
+            // Detect movement 
             if (input.IsKeyDown(Keys.W)) newPosition += front * SPEED * (float)e.Time;
             if (input.IsKeyDown(Keys.A)) newPosition -= right * SPEED * (float)e.Time;
             if (input.IsKeyDown(Keys.S)) newPosition -= front * SPEED * (float)e.Time;
@@ -80,13 +80,13 @@ namespace DevDeadly
             if (input.IsKeyDown(Keys.Space)) newPosition.Y += SPEED * (float)e.Time;
             if (input.IsKeyDown(Keys.LeftControl)) newPosition.Y -= SPEED * (float)e.Time;
 
-            // Verificar colisiones antes de mover
+            // Check colision b4 moving 
             if (!CheckCollision(newPosition))
             {
                 position = newPosition;
             }
 
-            // Rotación del mouse
+            // Mouse Rotation
             if (firstMove)
             {
                 lastPos = new Vector2(mouse.X, mouse.Y);
@@ -107,15 +107,15 @@ namespace DevDeadly
 
         private bool CheckCollision(Vector3 newPosition)
         {
-            // Comprobamos si la nueva posición de la cámara colide con algún cubo (AABB)
+            //AABB
             foreach (var box in obstacles)
             {
                 if (box.Intersects(newPosition))
                 {
-                    return true; // Colisión detectada
+                    return true; // Colition detected
                 }
             }
-            return false; // No hay colisión
+            return false; // No colision
         }
 
         public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e)
