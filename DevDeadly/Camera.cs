@@ -1,46 +1,47 @@
-﻿using OpenTK.Mathematics;
+﻿using System;
+using System.Collections.Generic;
+using OpenTK;
+using OpenTK.Input;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace DevDeadly
 {
-    internal class Camera
+
+    public class Camera
     {
-        // CONSTANTS
         private float SPEED = 16f;
         private float SCREENWIDTH;
         private float SCREENHEIGHT;
         private float SENSITIVITY = 9f;
 
-        // position vars
         public Vector3 position;
 
-        Vector3 up = Vector3.UnitY;
-        Vector3 front = -Vector3.UnitZ;
-        Vector3 right = Vector3.UnitX;
+        private Vector3 up = Vector3.UnitY;
+        private Vector3 front = -Vector3.UnitZ;
+        private Vector3 right = Vector3.UnitX;
 
-        // --- view rotations ---
         private float pitch;
         private float yaw = -90.0f;
 
         private bool firstMove = true;
         public Vector2 lastPos;
-        public Camera(float width, float height, Vector3 position)
+
+        private List<BoundingBox> obstacles;
+
+        public Camera(float width, float height, Vector3 position, List<BoundingBox> obstacles)
         {
             SCREENWIDTH = width;
             SCREENHEIGHT = height;
             this.position = position;
+            this.obstacles = obstacles;
         }
 
         public Matrix4 GetViewMatrix()
         {
             return Matrix4.LookAt(position, position + front, up);
         }
+
         public Matrix4 GetProjectionMatrix()
         {
             return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), SCREENWIDTH / SCREENHEIGHT, 0.1f, 100.0f);
@@ -69,33 +70,23 @@ namespace DevDeadly
 
         public void InputController(KeyboardState input, MouseState mouse, FrameEventArgs e)
         {
+            Vector3 newPosition = position;
 
-            if (input.IsKeyDown(Keys.W))
+            // Detectar el movimiento
+            if (input.IsKeyDown(Keys.W)) newPosition += front * SPEED * (float)e.Time;
+            if (input.IsKeyDown(Keys.A)) newPosition -= right * SPEED * (float)e.Time;
+            if (input.IsKeyDown(Keys.S)) newPosition -= front * SPEED * (float)e.Time;
+            if (input.IsKeyDown(Keys.D)) newPosition += right * SPEED * (float)e.Time;
+            if (input.IsKeyDown(Keys.Space)) newPosition.Y += SPEED * (float)e.Time;
+            if (input.IsKeyDown(Keys.LeftControl)) newPosition.Y -= SPEED * (float)e.Time;
+
+            // Verificar colisiones antes de mover
+            if (!CheckCollision(newPosition))
             {
-                position += front * SPEED * (float)e.Time;
-            }
-            if (input.IsKeyDown(Keys.A))
-            {
-                position -= right * SPEED * (float)e.Time;
-            }
-            if (input.IsKeyDown(Keys.S))
-            {
-                position -= front * SPEED * (float)e.Time;
-            }
-            if (input.IsKeyDown(Keys.D))
-            {
-                position += right * SPEED * (float)e.Time;
+                position = newPosition;
             }
 
-            if (input.IsKeyDown(Keys.Space))
-            {
-                position.Y += SPEED * (float)e.Time;
-            }
-            if (input.IsKeyDown(Keys.LeftControl))
-            {
-                position.Y -= SPEED * (float)e.Time;
-            }
-
+            // Rotación del mouse
             if (firstMove)
             {
                 lastPos = new Vector2(mouse.X, mouse.Y);
@@ -110,8 +101,23 @@ namespace DevDeadly
                 yaw += deltaX * SENSITIVITY * (float)e.Time;
                 pitch -= deltaY * SENSITIVITY * (float)e.Time;
             }
+
             UpdateVectors();
         }
+
+        private bool CheckCollision(Vector3 newPosition)
+        {
+            // Comprobamos si la nueva posición de la cámara colide con algún cubo (AABB)
+            foreach (var box in obstacles)
+            {
+                if (box.Intersects(newPosition))
+                {
+                    return true; // Colisión detectada
+                }
+            }
+            return false; // No hay colisión
+        }
+
         public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e)
         {
             InputController(input, mouse, e);

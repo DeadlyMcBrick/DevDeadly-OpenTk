@@ -19,7 +19,7 @@ namespace DevDeadly
         private Stopwatch timer = Stopwatch.StartNew();
 
 
-        public Shader(string vertexShaderSource, string fragmentShaderSource, string lightingShaderSource)
+        public Shader(string vertexShaderSource, string fragmentShaderSource)
         {
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
             GL.ShaderSource(vertexShader, vertexShaderSource);

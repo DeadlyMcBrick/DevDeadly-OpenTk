@@ -10,6 +10,24 @@ using ImGuiNET;
 
 namespace DevDeadly
 {
+    public class BoundingBox
+    {
+        public Vector3 Min { get; set; }
+        public Vector3 Max { get; set; }
+
+        public BoundingBox(Vector3 min, Vector3 max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public bool Intersects(Vector3 point)
+        {
+            return point.X >= Min.X && point.X <= Max.X &&
+                   point.Y >= Min.Y && point.Y <= Max.Y &&
+                   point.Z >= Min.Z && point.Z <= Max.Z;
+        }
+    }
     public class Game : GameWindow
     {
         private Stopwatch timer = Stopwatch.StartNew();
@@ -25,38 +43,38 @@ namespace DevDeadly
         #version 330 core
 
         layout(location = 0) in vec3 aPosition;
-        layout(location = 1) in vec3 aNormal;
+        layout(location = 1) in vec2 aTexCoord;
         
+        out vec2 texCoord;
+
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
-        
-        out vec3 Normal;
-        out vec3 FragPos;
-        
+
         void main()
         {
-            gl_Position =  vec4(aPosition, 1.0) * model * view * projection; 
-            FragPos = vec3(vec4(aPosition, 1.0) * model);
-            Normal = aNormal * mat3(transpose(inverse(model)));
-
+            gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
+            texCoord = aTexCoord;
         }";
 
         string fragmentShaderSource = @"
-        #version 330 core
-        
+       #version 330 core
+
         out vec4 FragColor;
-        
-        uniform vec3 objectColor;
-        uniform vec3 lightColor;
+
+        in vec2 texCoord;
+
+        uniform sampler2D texture0;
+        uniform sampler2D texture1;
 
         void main()
         {
+            // Mezclar las texturas
+            vec4 color1 = texture(texture0, texCoord);
+            vec4 color2 = texture(texture1, texCoord);
+            FragColor = mix(color1, color2, 0.4);
+         }";
 
-        FragColor = vec4(1.0);
-        FragColor = vec4(lightColor * objectColor, 1.0);
-
-        }";
 
         //FragColor = vec4(1.0);
         //FragColor = vec4(lightColor* objectColor, 1.0);
@@ -70,44 +88,44 @@ namespace DevDeadly
         //vec4 color2 = texture(texture1, texCoord);
         //FragColor = mix(color1, color2, 0.4);
 
-        string lightingShaderSource = @"
-        #version 330 core
-        out vec4 FragColor;
+        //string lightingShaderSource = @"
+        //#version 330 core
+        //out vec4 FragColor;
 
-         uniform vec3 objectColor;
-         uniform vec3 lightColor;
-         uniform vec3 lightPos;
-         uniform vec3 viewPos;
+        // uniform vec3 objectColor;
+        // uniform vec3 lightColor;
+        // uniform vec3 lightPos;
+        // uniform vec3 viewPos;
 
-        in vec3 Normal;
-        in vec3 FragPos;
+        //in vec3 Normal;
+        //in vec3 FragPos;
 
-        void main ()
-        {
+        //void main ()
+        //{
 
-         float ambientStrength = 0.1;
-         vec3 ambient = ambientStrength * lightColor;
+        // float ambientStrength = 0.1;
+        // vec3 ambient = ambientStrength * lightColor;
 
-         vec3 norm = normalize(Normal);
-         vec3 lightDir = normalize(lightPos - FragPos);
+        // vec3 norm = normalize(Normal);
+        // vec3 lightDir = normalize(lightPos - FragPos);
 
-         float diff = max(dot(norm, lightDir), 0.0);
-         vec3 diffuse = diff * lightColor;    
+        // float diff = max(dot(norm, lightDir), 0.0);
+        // vec3 diffuse = diff * lightColor;    
 
-         float specularStrength = 0.5;
-         vec3 viewDir = normalize (viewPos - FragPos);
-         vec3 reflectDir = reflect(-lightDir, norm);
+        // float specularStrength = 0.5;
+        // vec3 viewDir = normalize (viewPos - FragPos);
+        // vec3 reflectDir = reflect(-lightDir, norm);
 
-         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
-         vec3 specular = specularStrength * spec * lightColor;
+        // float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
+        // vec3 specular = specularStrength * spec * lightColor;
 
-         vec3 result = (ambient + diffuse + specular) * objectColor;
-         FragColor = vec4(result, 1.0);
+        // vec3 result = (ambient + diffuse + specular) * objectColor;
+        // FragColor = vec4(result, 1.0);
 
-        }";
+        //}";
 
         // Vertex data
-     private readonly float[] vertices = {
+        private readonly float[] vertices = {
 
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -152,7 +170,7 @@ namespace DevDeadly
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-        public readonly Vector3 lightPos = new Vector3(1.2f, 1.0f, 2.0f);
+        //public readonly Vector3 lightPos = new Vector3(1.2f, 1.0f, 2.0f);
         private readonly uint[] indices =
         {
              0, 1, 3,  // First 
@@ -166,7 +184,7 @@ namespace DevDeadly
         0.5f, 1.0f   // top-center corner
         };
 
-        int VertexArrayObject;
+        public int VertexArrayObject;
         int VertexBufferObject;
         int ElementBufferObject;
         int nrAttribute = 0;
@@ -197,26 +215,26 @@ namespace DevDeadly
         { 
          this.width = width; this.height = height;
         }
-        public struct Color4
-        {
-            public float R, G, B, A;
-            public Color4(float r, float g, float b, float a)
-            {
-                R = r;
-                G = g;
-                B = b;
-                A = a;
-            }
-            public static Color4 operator *(Color4 color1, Color4 color2)
-            {
-                return new Color4(
-                    color1.R * color2.R,
-                    color1.G * color2.G,
-                    color1.B * color2.B,
-                    color1.A * color2.A
-                );
-            }
-        }
+        //public struct Color4
+        //{
+        //    public float R, G, B, A;
+        //    public Color4(float r, float g, float b, float a)
+        //    {
+        //        R = r;
+        //        G = g;
+        //        B = b;
+        //        A = a;
+        //    }
+        //    public static Color4 operator *(Color4 color1, Color4 color2)
+        //    {
+        //        return new Color4(
+        //            color1.R * color2.R,
+        //            color1.G * color2.G,
+        //            color1.B * color2.B,
+        //            color1.A * color2.A
+        //        );
+        //    }
+        //}
 
         //Keybinds (Being able to drop some menu to being able to change in the future idk)
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -240,10 +258,19 @@ namespace DevDeadly
             {
                 Close();
             }
+
         }
         protected override void OnLoad()
         {
             base.OnLoad();
+
+            List<BoundingBox> cubes = new List<BoundingBox>()
+
+            {
+                 new BoundingBox(new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, 1.0f, 1.0f)), 
+                 new BoundingBox(new Vector3(3.0f, -1.0f, -1.0f), new Vector3(5.0f, 1.0f, 1.0f))   
+            };
+
 
             ImGui.CreateContext();
             ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DockingEnable;
@@ -255,13 +282,13 @@ namespace DevDeadly
             ElementBufferObject = GL.GenBuffer();
 
             //String path
-            shader = new Shader(vertexShaderSource, fragmentShaderSource, lightingShaderSource);
+            shader = new Shader(vertexShaderSource, fragmentShaderSource);
 
-            string imagePath = "Images/container.jpg";
+            string imagePath = "Tierra minecraft.jpg"; 
             texture = new Texture(imagePath);
             texture.Use(TextureUnit.Texture0);
 
-            string imagePath2 = "Images/container.jpg";
+            string imagePath2 = "Tierra minecraft.jpg";
             texture2 = new Texture(imagePath2);
             texture2.Use(TextureUnit.Texture1);
 
@@ -295,7 +322,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //Background Color
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL.ClearColor(3.0f, 3.0f, 3.0f, 2.0f);
 
             timer = Stopwatch.StartNew();
 
@@ -306,11 +333,13 @@ namespace DevDeadly
             GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
             GL.EnableVertexAttribArray(positionLocation);
 
-            int normalLocation = GL.GetAttribLocation(shader.Handle, "aNormal");
-            GL.VertexAttribPointer(positionLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(positionLocation);
+            //In case I want to change it to the lamp shit, I have to replace it as aNormal and don't forget to change the vert/frag and add the lightingSource
+            int texCoordLocation = GL.GetAttribLocation(shader.Handle, "aTexCoord");
+            GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof (float));
+            GL.EnableVertexAttribArray(texCoordLocation);
 
-            camera = new Camera(width, height, Vector3.Zero);
+            camera = new Camera(width, height, new Vector3(0.0f, 0.0f, 3.0f), cubes);
+
             CursorState = CursorState.Grabbed;
 
             //Structure all the info for the buffer and stuff bla....
@@ -351,30 +380,30 @@ namespace DevDeadly
             Matrix4 view = camera.GetViewMatrix();
             Matrix4 projection = camera.GetProjectionMatrix();
             
-            //Lamp configuration 
-            Matrix4 LampMatrix = Matrix4.Identity;
+            ////Lamp configuration 
+            //Matrix4 LampMatrix = Matrix4.Identity;
 
             //Scale the size of the box (Not working with negatives for some reason)
-            LampMatrix *= Matrix4.CreateScale(0.2f);
-            LampMatrix = Matrix4.CreateTranslation(lightPos);
+            //model *= Matrix4.CreateScale(0.2f);
+            //model = Matrix4.CreateTranslation(lightPos);
 
             //Creation of the lights for the shadows blocks
           
-            shader.SetVector3("objectColor", new Vector3(1.0f, 0.5f, 0.31f));
-            shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            shader.SetVector3("lightPos", lightPos);
-            shader.SetVector3("viewPos", camera.position);
+            //shader.SetVector3("objectColor", new Vector3(1.0f, 0.5f, 0.31f));
+            //shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            //shader.SetVector3("lightPos", lightPos);
+            //shader.SetVector3("viewPos", camera.position);
 
             //Color projection 
-            Color4 coral = new Color4(1.0f, 0.5f, 0.31f, 1.0f);
-            Color4 lightColor = new Color4(0.33f, 0.42f, 0.18f, 1.0f);
-            Color4 toyColor = new Color4(1.0f, 0.5f, 0.31f, 1.0f);
-            Color4 result = lightColor * toyColor;
+            //Color4 coral = new Color4(1.0f, 0.5f, 0.31f, 1.0f);
+            //Color4 lightColor = new Color4(0.33f, 0.42f, 0.18f, 1.0f);
+            //Color4 toyColor = new Color4(1.0f, 0.5f, 0.31f, 1.0f);
+            //Color4 result = lightColor * toyColor;
 
 
             //Ilumination position
-            LampMatrix = Matrix4.CreateRotationY(yRot) * Matrix4.CreateTranslation(2f, 4f, -5f);
-            yRot += 0.0001f;
+            //model = Matrix4.CreateRotationY(yRot) * Matrix4.CreateTranslation(2f, 4f, -5f);
+            //yRot += 0.0001f;
 
             //model = Matrix4.CreateRotationZ(zRot) * Matrix4.CreateTranslation(0f, 0f, -5f);
             //zRot += 0.001f;
@@ -401,22 +430,21 @@ namespace DevDeadly
             texture2.Use(TextureUnit.Texture1);
 
             GL.Enable(EnableCap.DepthTest);
-
+            model = Matrix4.CreateTranslation(new Vector3(1f, 0f, 1f));
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
             //White color
-            shader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f)); 
-            shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            shader.SetVector3("lightPos", lightPos);
-            shader.SetVector3("viewPos", camera.position);
+            //shader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f)); 
+            //shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            //shader.SetVector3("lightPos", lightPos);
+            //shader.SetVector3("viewPos", camera.position);
 
-            model += Matrix4.CreateTranslation(new Vector3(2f, 0f, 1f));
-            GL.UniformMatrix4(modelLocation, true, ref LampMatrix);
+            model = Matrix4.CreateTranslation(new Vector3(1f, 0f, 1f));
+            GL.UniformMatrix4(modelLocation, true, ref model);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
-
 
             Context.SwapBuffers();
 
