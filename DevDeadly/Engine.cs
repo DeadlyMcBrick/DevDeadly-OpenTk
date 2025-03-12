@@ -10,54 +10,56 @@ using ImGuiNET;
 
 namespace DevDeadly
 {
-    public class BoundingBox
-    {
-        public Vector3 Min { get; set; }
-        public Vector3 Max { get; set; }
+    //public class BoundingBox
+    //{
+    //    public Vector3 Min { get; set; }
+    //    public Vector3 Max { get; set; }
 
-        public BoundingBox(Vector3 min, Vector3 max)
-        {
-            Min = min;
-            Max = max;
-        }
+    //    public BoundingBox(Vector3 min, Vector3 max)
+    //    {
+    //        Min = min;
+    //        Max = max;
+    //    }
 
-        public bool Intersects(Vector3 point)
-        {
-            return point.X >= Min.X && point.X <= Max.X &&
-                   point.Y >= Min.Y && point.Y <= Max.Y &&
-                   point.Z >= Min.Z && point.Z <= Max.Z;
-        }
-    }
+    //    public bool Intersects(Vector3 point)
+    //    {
+    //        return point.X >= Min.X && point.X <= Max.X &&
+    //               point.Y >= Min.Y && point.Y <= Max.Y &&
+    //               point.Z >= Min.Z && point.Z <= Max.Z;
+    //    }
+    //}
 
     public class Game : GameWindow
     {
+        Chunk chunk;
 
-        public List<BoundingBox> GenerateTerrain(int width, int height, int depth)
-        {
-            List<BoundingBox> terrain = new List<BoundingBox>();
+        //public List<BoundingBox> GenerateTerrain(int width, int height, int depth)
+        //{
+        //    List<BoundingBox> terrain = new List<BoundingBox>();
 
-            for (int x = -width / 2; x < width / 2; x++) 
-            {
-                for (int y = 0; y < height; y++)          
-                {
-                    for (int z = -depth / 2; z < depth / 2; z++) 
-                    {
-                        Vector3 min = new Vector3(x * 2.0f, y * 2.0f, z * 2.0f);
-                        Vector3 max = new Vector3((x + 1) * 2.0f, (y + 1) * 2.0f, (z + 1) * 2.0f);
-                        terrain.Add(new BoundingBox(min, max));
-                    }
-                }
-            }
+        //    for (int x = -width / 2; x < width / 2; x++) 
+        //    {
+        //        for (int y = 0; y < height; y++)          
+        //        {
+        //            for (int z = -depth / 2; z < depth / 2; z++)
+        //            {
+        //                Vector3 min = new Vector3(x * 2.0f, y * 2.0f, z * 2.0f);
+        //                Vector3 max = new Vector3((x + 1) * 2.0f, (y + 1) * 2.0f, (z + 1) * 2.0f);
+        //                terrain.Add(new BoundingBox(min, max));
+        //            }
 
-            return terrain;
-        }
+        //        }
+        //    }
+
+        //    return terrain;
+        //}
 
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
         public Shader lightingShader;
         public Shader lampShader;
-        public List<BoundingBox> cubes;
-        public List<BoundingBox> cubes2;
+        //public List<BoundingBox> cubes;
+        //public List<BoundingBox> cubes2;
 
 
         //Define separate for the other shader shit
@@ -284,37 +286,39 @@ namespace DevDeadly
                 Close();
             }
 
-            if (cubes != null)
-            {
-                Vector3 cameraPosition = camera.position;
+            //if (cubes != null)
+            //{
+            //    Vector3 cameraPosition = camera.position;
 
-                foreach (var cube in cubes)
-                {
-                    if (cube.Intersects(cameraPosition))
-                    {
-                        Console.WriteLine("Colision detected");
-                    }
-                }
-            }
+            //    foreach (var cube in cubes)
+            //    {
+            //        if (cube.Intersects(cameraPosition))
+            //        {
+            //            Console.WriteLine("Colision detected");
+            //        }
+            //    }
+            //}
 
         }
         protected override void OnLoad()
         {
             base.OnLoad();
 
-            int width = 10;
-            int height = 2;
-            int depth = 10;
-            cubes2 = GenerateTerrain(width, height, depth); 
+            chunk  = new Chunk(new Vector3(0, 0, 0));
+
+            //int width = 9;
+            //int height = 1;
+            //int depth = 3;
+            //cubes2 = GenerateTerrain(width, height, depth); 
 
 
-            cubes = new List<BoundingBox>()
+            //cubes = new List<BoundingBox>()
 
-            {
-                 new BoundingBox(new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, 1.0f, 1.0f)),
-                 new BoundingBox(new Vector3(3.0f, -1.0f, -1.0f), new Vector3(5.0f, 1.0f, 1.0f))
+            //{
+            //     new BoundingBox(new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, 1.0f, 1.0f)),
+            //     new BoundingBox(new Vector3(3.0f, -1.0f, -1.0f), new Vector3(5.0f, 1.0f, 1.0f))
 
-            };
+            //};
 
             VertexArrayObject = GL.GenVertexArray();
             VertexBufferObject = GL.GenBuffer();
@@ -377,7 +381,9 @@ namespace DevDeadly
             GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof (float));
             GL.EnableVertexAttribArray(texCoordLocation);
 
-            camera = new Camera(width, height, new Vector3(0.0f, 0.0f, 3.0f), cubes);
+            //camera = new Camera(new Vector3(0.0f, 0.0f, 3.0f);
+            camera = new Camera(width, height, Vector3.Zero);
+            CursorState = CursorState.Grabbed;
 
             CursorState = CursorState.Grabbed;
 
@@ -413,7 +419,7 @@ namespace DevDeadly
             Matrix4 view = camera.GetViewMatrix();
             Matrix4 projection = camera.GetProjectionMatrix();
 
-            Matrix4 outlineModel = Matrix4.CreateScale(1.05f) * model;
+            //Matrix4 outlineModel = Matrix4.CreateScale(1.05f) * model;
             
             ////Lamp configuration 
             //Matrix4 LampMatrix = Matrix4.Identity;
@@ -454,20 +460,21 @@ namespace DevDeadly
             GL.UseProgram(shaderProgram);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.BindVertexArray(VertexArrayObject);
-
+            chunk.Render(shader);
             shader.Use();
 
             //If I wanna render 2 images dont use shader here.
             shader.Use();
 
-            foreach (var cube2 in cubes2) { 
-
+       
             texture.Use(TextureUnit.Texture0);
             texture2.Use(TextureUnit.Texture1);
 
+            //model = Matrix4.CreateTranslation(new Vector3(cube.Min.X, cube.Min.Y, cube.Min.Z));
 
-            GL.Enable(EnableCap.DepthTest);
-            model = Matrix4.CreateTranslation(new Vector3(1f, 0f, 1f));
+
+            GL.Enable(EnableCap.DepthTest);             // x   y   z 
+            model += Matrix4.CreateTranslation(new Vector3(1f, 0f, 0f));
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
@@ -478,13 +485,13 @@ namespace DevDeadly
             //shader.SetVector3("lightPos", lightPos);
             //shader.SetVector3("viewPos", camera.position);
 
-            model = Matrix4.CreateTranslation(new Vector3(1f, 0f, 1f));
+            GL.Enable(EnableCap.DepthTest);
             GL.UniformMatrix4(modelLocation, true, ref model);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
-        }
 
-        Context.SwapBuffers();
+
+            Context.SwapBuffers();
 
         }
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
@@ -492,5 +499,6 @@ namespace DevDeadly
             base.OnFramebufferResize(e);
             GL.Viewport(0, 0, e.Width, e.Height);
         }
+
     }
 }

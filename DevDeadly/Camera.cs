@@ -27,14 +27,15 @@ namespace DevDeadly
         private bool firstMove = true;
         public Vector2 lastPos;
 
-        private List<BoundingBox> obstacles;
+        //private List<BoundingBox> obstacles;
+        //List<BoundingBox> obstacles
 
-        public Camera(float width, float height, Vector3 position, List<BoundingBox> obstacles)
+        public Camera(float width, float height, Vector3 position)
         {
             SCREENWIDTH = width;
             SCREENHEIGHT = height;
             this.position = position;
-            this.obstacles = obstacles;
+            //this.obstacles = obstacles;
         }
 
         public Matrix4 GetViewMatrix()
@@ -73,18 +74,37 @@ namespace DevDeadly
             Vector3 newPosition = position;
 
             // Detect movement 
-            if (input.IsKeyDown(Keys.W)) newPosition += front * SPEED * (float)e.Time;
-            if (input.IsKeyDown(Keys.A)) newPosition -= right * SPEED * (float)e.Time;
-            if (input.IsKeyDown(Keys.S)) newPosition -= front * SPEED * (float)e.Time;
-            if (input.IsKeyDown(Keys.D)) newPosition += right * SPEED * (float)e.Time;
-            if (input.IsKeyDown(Keys.Space)) newPosition.Y += SPEED * (float)e.Time;
-            if (input.IsKeyDown(Keys.LeftControl)) newPosition.Y -= SPEED * (float)e.Time;
-
-            // Check colision b4 moving 
-            if (!CheckCollision(newPosition))
+            if (input.IsKeyDown(Keys.W))
             {
-                position = newPosition;
+                position += front * SPEED * (float)e.Time;
             }
+            if (input.IsKeyDown(Keys.A))
+            {
+                position -= right * SPEED * (float)e.Time;
+            }
+            if (input.IsKeyDown(Keys.S))
+            {
+                position -= front * SPEED * (float)e.Time;
+            }
+            if (input.IsKeyDown(Keys.D))
+            {
+                position += right * SPEED * (float)e.Time;
+            }
+
+            if (input.IsKeyDown(Keys.Space))
+            {
+                position.Y += SPEED * (float)e.Time;
+            }
+            if (input.IsKeyDown(Keys.LeftControl))
+            {
+                position.Y -= SPEED * (float)e.Time;
+            }
+
+            // check colision b4 moving 
+            //if (!checkcollision(newposition))
+            //{
+            //    position = newposition;
+            //}
 
             // Mouse Rotation
             if (firstMove)
@@ -105,18 +125,18 @@ namespace DevDeadly
             UpdateVectors();
         }
 
-        private bool CheckCollision(Vector3 newPosition)
-        {
-            //AABB
-            foreach (var box in obstacles)
-            {
-                if (box.Intersects(newPosition))
-                {
-                    return true; // Colition detected
-                }
-            }
-            return false; // No colision
-        }
+        //private bool CheckCollision(Vector3 newPosition)
+        //{
+        //    //AABB
+        //    foreach (var box in obstacles)
+        //    {
+        //        if (box.Intersects(newPosition))
+        //        {
+        //            return true; // Colition detected
+        //        }
+        //    }
+        //    return false; // No colision
+        //}
 
         public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e)
         {
