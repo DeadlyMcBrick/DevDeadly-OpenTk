@@ -59,23 +59,26 @@ namespace DevDeadly
             return heightmap;
         }
 
-        public void GenBlocks(float[,]heightmap)
+        public void GenBlocks(float[,] heightmap)
         {
             for (int x = 0; x < SIZE; x++)
             {
                 for (int z = 0; z < SIZE; z++)
                 {
                     int columnHeight = (int)(heightmap[x, z] / 10);
-                    for (int y = 0; y < columnHeight; y++)
+                    for (int y = 0; y < HEIGHT; y++)
                     {
-                        if (y < columnHeight)
+                        BlockType type = BlockType.EMPTY;
+                        if (y < columnHeight - 1)
                         {
-                            chunkBlocks[x, y, z] = new Block(new Vector3(x, y, z), BlockType.DIRT);
+                            type = BlockType.DIRT;
                         }
-                        else
+                        if (y == columnHeight - 1)
                         {
-                            chunkBlocks[x, y, z] = new Block(new Vector3(x, y, z), BlockType.EMPTY);
+                            type = BlockType.GRASS;
                         }
+
+                        chunkBlocks[x, y, z] = new Block(new Vector3(x, y, z), type);
                     }
                 }
             }
@@ -87,119 +90,117 @@ namespace DevDeadly
             {
                 for (int z = 0; z < SIZE; z++)
                 {
-                    int columnHeight = (int)(heightmap[x, z] / 10);
-                    for (int y = 0; y < columnHeight; y++)
+                    for (int y = 0; y < HEIGHT; y++)
                     {
                         int numFaces = 0;
 
-                        //Left Faces 
-                        if (x > 0)
+                        if (chunkBlocks[x, y, z].type != BlockType.EMPTY)
                         {
-                            if (chunkBlocks[x-1, y, z].type == BlockType.EMPTY)
-                            {
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
-                                numFaces++;
-                            }
-                            else
-                            {
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
-                                numFaces++;
-                            }
-
-                            //RIght Faces
-
-                            if (x < SIZE-1)
+                            //Left Faces 
+                            if (x > 0)
                             {
                                 if (chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
+                                {
+                                    IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
+                                    numFaces++;
+                                }
+                                else
+                                {
+                                    IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
+                                    numFaces++;
+                                }
+
+                                //RIght Faces
+
+                                if (x < SIZE - 1)
+                                {
+                                    if (chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
+                                    {
+                                        IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
+                                        numFaces++;
+                                    }
+                                }
+
+                                else
                                 {
                                     IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
                                     numFaces++;
                                 }
-                            }
 
-                            else
-                            {
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
-                                numFaces++;
-                            }
+                                //Top Faces
 
-                            //Top Faces
+                                if (y < HEIGHT - 1)
+                                {
+                                    if (chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
+                                    {
+                                        IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
+                                        numFaces++;
+                                    }
+                                }
 
-                            if(y < columnHeight -1)
-                            {
-                                if (chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
+                                else
                                 {
                                     IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
                                     numFaces++;
                                 }
-                            }
 
-                            else
-                            {
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
-                                numFaces++;
-                            }
+                                //Bottom Face
+                                if (y > 0)
+                                {
+                                    if (chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
+                                    {
+                                        IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
+                                        numFaces++;
+                                    }
+                                }
 
-                            //Bottom Face
-                            if (y > 0)
-                            {
-                                if (chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
+                                else
                                 {
                                     IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
                                     numFaces++;
                                 }
-                            }
 
-                            else
-                            {
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
-                                numFaces++;
-                            }
+                                //Front Face 
 
-                            //Front Face 
-                            
-                            if (z < 0)
-                            {
-                                if (chunkBlocks[x,y,z -1].type == BlockType.EMPTY)
+                                if (z < 0)
+                                {
+                                    if (chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
+                                    {
+                                        IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
+                                        numFaces++;
+                                    }
+                                }
+
+                                else
                                 {
                                     IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
                                     numFaces++;
                                 }
-                            }
 
-                            else
-                            {
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
-                                numFaces++;
-                            }
-
-                            //Back face
-                            if (z > 0)
-                            {
-                                if (chunkBlocks[x,y,z - 1].type == BlockType.EMPTY)
-                                 {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
-                                    numFaces++;
-                                 }
-
-                                else
+                                //Back face
+                                if (z > 0)
                                 {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
-                                    numFaces++;
+                                    if (chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
+                                    {
+                                        IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
+                                        numFaces++;
+                                    }
+
+                                    else
+                                    {
+                                        IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
+                                        numFaces++;
+                                    }
                                 }
-                            }
 
 
                                 AddIndices(numFaces);
                             }
-
-                        
                         }
                     }
                 }
             }
-
-        
+        }
 
         public void IntegrateFace(Block block, Faces face)
         {
@@ -207,22 +208,19 @@ namespace DevDeadly
             chunkVerts.AddRange(faceData.vertices);
             chunkUVs.AddRange(faceData.uv);
             Console.WriteLine("Integrating face: " + face.ToString());
-
         }
 
-
-         //Create the blocks chunks
-           
+        //Create the blocks chunks
         public void AddIndices(int amtFaces)
         {
             for (int i = 0; i < amtFaces; i++)
             {
-                chunkIndices.Add(0 +  indexCount);
-                chunkIndices.Add(1 +  indexCount);
-                chunkIndices.Add(2 +  indexCount);
-                chunkIndices.Add(2 +  indexCount);
-                chunkIndices.Add(3 +  indexCount);
-                chunkIndices.Add(0 +  indexCount);
+                chunkIndices.Add(0 + indexCount);
+                chunkIndices.Add(1 + indexCount);
+                chunkIndices.Add(2 + indexCount);
+                chunkIndices.Add(2 + indexCount);
+                chunkIndices.Add(3 + indexCount);
+                chunkIndices.Add(0 + indexCount);
 
                 indexCount += 4;
             }
@@ -250,7 +248,7 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, new IntPtr(chunkIndices.Count * sizeof(uint)), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
-            textureID = LoadTexture("Tierra minecraft.jpg");
+            textureID = LoadTexture("atlas.png");
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
@@ -278,7 +276,6 @@ namespace DevDeadly
                 return texture;
             }
         }
-
 
         public void Render(Shader program)
         {

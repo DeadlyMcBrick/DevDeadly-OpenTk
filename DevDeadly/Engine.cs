@@ -10,50 +10,9 @@ using ImGuiNET;
 
 namespace DevDeadly
 {
-    //public class BoundingBox
-    //{
-    //    public Vector3 Min { get; set; }
-    //    public Vector3 Max { get; set; }
-
-    //    public BoundingBox(Vector3 min, Vector3 max)
-    //    {
-    //        Min = min;
-    //        Max = max;
-    //    }
-
-    //    public bool Intersects(Vector3 point)
-    //    {
-    //        return point.X >= Min.X && point.X <= Max.X &&
-    //               point.Y >= Min.Y && point.Y <= Max.Y &&
-    //               point.Z >= Min.Z && point.Z <= Max.Z;
-    //    }
-    //}
-
     public class Game : GameWindow
     {
         Chunk chunk;
-
-        //public List<BoundingBox> GenerateTerrain(int width, int height, int depth)
-        //{
-        //    List<BoundingBox> terrain = new List<BoundingBox>();
-
-        //    for (int x = -width / 2; x < width / 2; x++) 
-        //    {
-        //        for (int y = 0; y < height; y++)          
-        //        {
-        //            for (int z = -depth / 2; z < depth / 2; z++)
-        //            {
-        //                Vector3 min = new Vector3(x * 2.0f, y * 2.0f, z * 2.0f);
-        //                Vector3 max = new Vector3((x + 1) * 2.0f, (y + 1) * 2.0f, (z + 1) * 2.0f);
-        //                terrain.Add(new BoundingBox(min, max));
-        //            }
-
-        //        }
-        //    }
-
-        //    return terrain;
-        //}
-
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
         public Shader lightingShader;
@@ -218,6 +177,7 @@ namespace DevDeadly
         int width, height;
         Camera camera;
         int resultado;
+        AABB colition;
 
         // ROTATION Y
         float yRot;
@@ -323,15 +283,19 @@ namespace DevDeadly
             VertexArrayObject = GL.GenVertexArray();
             VertexBufferObject = GL.GenBuffer();
             ElementBufferObject = GL.GenBuffer();
+            GL.Enable(EnableCap.DepthTest);
+            //GL.FrontFace(FrontFaceDirection.Cw);
+            //GL.Enable(EnableCap.CullFace);
+            //GL.CullFace(CullFaceMode.Back);
 
             //String path
             shader = new Shader(vertexShaderSource, fragmentShaderSource);
 
-            string imagePath = "Tierra minecraft.jpg"; 
+            string imagePath = "atlas.png"; 
             texture = new Texture(imagePath);
             texture.Use(TextureUnit.Texture0);
 
-            string imagePath2 = "Tierra minecraft.jpg";
+            string imagePath2 = "atlas.png";
             texture2 = new Texture(imagePath2);
             texture2.Use(TextureUnit.Texture1);
 
@@ -473,7 +437,7 @@ namespace DevDeadly
             //model = Matrix4.CreateTranslation(new Vector3(cube.Min.X, cube.Min.Y, cube.Min.Z));
 
 
-            GL.Enable(EnableCap.DepthTest);             // x   y   z 
+            GL.Enable(EnableCap.DepthTest);              // x   y   z 
             model += Matrix4.CreateTranslation(new Vector3(1f, 0f, 0f));
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
@@ -490,7 +454,7 @@ namespace DevDeadly
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
-
+            DrawHUD();
             Context.SwapBuffers();
 
         }
@@ -498,6 +462,11 @@ namespace DevDeadly
         {
             base.OnFramebufferResize(e);
             GL.Viewport(0, 0, e.Width, e.Height);
+        }
+
+        private void DrawHUD()
+        {
+         
         }
 
     }

@@ -14,6 +14,7 @@ namespace DevDeadly
     public enum BlockType
     {
         DIRT,
+        GRASS,
         EMPTY,
     }
 

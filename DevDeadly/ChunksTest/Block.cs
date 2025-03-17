@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using Vector2 = OpenTK.Mathematics.Vector2;
+using DevDeadly.ChunksTest;
 
 namespace DevDeadly
 {
@@ -16,49 +17,54 @@ namespace DevDeadly
 
         private Dictionary<Faces, FaceData> faces;
 
-        List<Vector2> dirtUV = new List<Vector2>
+        public Dictionary<Faces, List<Vector2>> blockUV = new Dictionary<Faces, List<Vector2>>()
         {
-            new Vector2 (0f, 1f), 
-            new Vector2 (1f, 1f),
-            new Vector2 (1f, 0f),
-            new Vector2 (0f, 0f),
-
+            {Faces.FRONT, new List<Vector2>()},
+            {Faces.BACK, new List<Vector2>()},
+            {Faces.LEFT, new List<Vector2>()},
+            {Faces.RIGHT, new List<Vector2>()},
+            {Faces.TOP, new List<Vector2>()},
+            {Faces.BOTTOM, new List<Vector2>()},
         };
-
         public Block(Vector3 position, BlockType blockType = BlockType.EMPTY){
             type = blockType;
             this.position = position;
+
+            if (blockType != BlockType.EMPTY)
+            {
+                blockUV = TextureData.blockTypeUVs[blockType];
+            }
 
             faces = new Dictionary<Faces, FaceData>
             {
                 {Faces.FRONT, new FaceData{
                     vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.FRONT]),
-                    uv = dirtUV
+                    uv = blockUV[Faces.FRONT]
                 } },
 
                 {Faces.BACK, new FaceData{
                     vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.BACK]),
-                    uv = dirtUV
+                    uv = blockUV[Faces.BACK]
                 } },
 
                 {Faces.LEFT, new FaceData{
                     vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.LEFT]),
-                    uv = dirtUV
+                    uv = blockUV[Faces.LEFT]
                 } },
 
                 {Faces.RIGHT, new FaceData{
                     vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.RIGHT]),
-                    uv = dirtUV
+                    uv = blockUV[Faces.RIGHT]
                 } },
 
                 {Faces.TOP, new FaceData{
                     vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.TOP]),
-                    uv = dirtUV
+                    uv = blockUV[Faces.TOP]
                 } },
 
                 {Faces.BOTTOM, new FaceData{
                     vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.BOTTOM]),
-                    uv = dirtUV
+                    uv = blockUV[Faces.BOTTOM]
                 } }
             };
         }
