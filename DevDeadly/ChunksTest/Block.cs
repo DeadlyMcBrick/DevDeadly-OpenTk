@@ -84,5 +84,14 @@ namespace DevDeadly
         {
             return faces[face];
         }
+
+        //AABB for every cube
+        public AABB GetAABB()
+        {
+            Vector3 min = position;
+            Vector3 max = position + Vector3.One;
+
+            return new AABB(min, max);
+        }
     }
 }

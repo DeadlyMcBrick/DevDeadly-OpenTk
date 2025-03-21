@@ -1,28 +1,50 @@
-﻿using System;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using Vector3 = OpenTK.Mathematics.Vector3;
+﻿//using System;
+//using System.Collections.Generic;
+//using OpenTK.Graphics.OpenGL4;
+//using OpenTK.Windowing.Common;
+//using OpenTK.Windowing.Desktop;
+//using OpenTK.Mathematics;
+//using StbImageSharp;
+//using Vector3 = OpenTK.Mathematics.Vector3;
 
-namespace DevDeadly
-{
-    public class AABB
-    {
-        public Vector3 Min { get; set; }
-        public Vector3 Max { get; set; }
+//////this is going to be for the colition test to being able to not traspase the chunks 
+//using DevDeadly;
+//using System.Drawing;
 
-        public AABB(Vector3 min, Vector3 max)
-        {
-            Min = min;
-            Max = max;
-        }
+//namespace DevDeadly
+//{
+//    public bool CheckCollision(AABB playerAABB)
+//    {
+//        Vector3 min = playerAABB.Min;
+//        Vector3 max = playerAABB.Max;
 
-        public bool Intersects(AABB other)
-        {
-            return (Min.X <= other.Max.X && Max.X >= other.Min.X) &&
-                   (Min.Y <= other.Max.Y && Max.Y >= other.Min.Y) &&
-                   (Min.Z <= other.Max.Z && Max.Z >= other.Min.Z);
-        }
-    }
+//        int startX = Math.Max((int)Math.Floor(min.X), 0);
+//        int endX = Math.Min((int)Math.Ceiling(max.X), SIZE - 1);
 
-}
+//        int startY = Math.Max((int)Math.Floor(min.Y), 0);
+//        int endY = Math.Min((int)Math.Ceiling(max.Y), HEIGHT - 1);
+
+//        int startZ = Math.Max((int)Math.Floor(min.Z), 0);
+//        int endZ = Math.Min((int)Math.Ceiling(max.Z), SIZE - 1);
+
+//        for (int x = startX; x <= endX; x++)
+//        {
+//            for (int y = startY; y <= endY; y++)
+//            {
+//                for (int z = startZ; z <= endZ; z++)
+//                {
+//                    if (chunkBlocks[x, y, z].type != BlockType.EMPTY)
+//                    {
+//                        if (playerAABB.Intersects(blockAABBs[x, y, z]))
+//                        {
+//                            return true;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+
+//        return false;
+//    } 
+//}
+

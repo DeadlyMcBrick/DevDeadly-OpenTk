@@ -56,7 +56,7 @@ namespace DevDeadly.ChunksTest
 
                    {Faces.BOTTOM, new List<Vector2>()
                 {
-                     new Vector2 (2f/16f, 15f/16f),
+                     new Vector2 (2f/16f, 15f/16f), 
                      new Vector2 (3f/16f, 15f/16f),
                      new Vector2 (3f/16f, 1f),
                      new Vector2 (2f/16f, 1f),

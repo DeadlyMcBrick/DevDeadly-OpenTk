@@ -7,6 +7,7 @@ using System.Diagnostics;
 using OpenTK.Mathematics;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using ImGuiNET;
+using static DevDeadly.Chunk;
 
 namespace DevDeadly
 {
@@ -110,6 +111,7 @@ namespace DevDeadly
 
         //}";
 
+         //Replace this one for the Faces.Bottoms to being able to chunks this terrain 
         // Vertex data
         private readonly float[] vertices = {
 
@@ -178,6 +180,8 @@ namespace DevDeadly
         Camera camera;
         int resultado;
         AABB colition;
+        Player player = new Player(new Vector3(5, 35, 5), new Vector3(1, 2, 1));
+        Vector3 playerMovement = new Vector3(0, 0, 0);
 
         // ROTATION Y
         float yRot;
@@ -416,6 +420,8 @@ namespace DevDeadly
             int modelLocation = GL.GetUniformLocation(shader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(shader.Handle, "view");
             int projectionLocation = GL.GetUniformLocation(shader.Handle, "projection");
+            //This is going to be separated to the other one, also need to be added in the Frags and Verts
+            int testingLocation = GL.GetUniformLocation(shader.Handle, "LocationTesting");
            
             GL.UniformMatrix4(modelLocation, true, ref model);
             GL.UniformMatrix4(viewLocation, true, ref view);
@@ -424,18 +430,17 @@ namespace DevDeadly
             GL.UseProgram(shaderProgram);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.BindVertexArray(VertexArrayObject);
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             chunk.Render(shader);
             shader.Use();
 
             //If I wanna render 2 images dont use shader here.
             shader.Use();
 
-       
             texture.Use(TextureUnit.Texture0);
             texture2.Use(TextureUnit.Texture1);
 
             //model = Matrix4.CreateTranslation(new Vector3(cube.Min.X, cube.Min.Y, cube.Min.Z));
-
 
             GL.Enable(EnableCap.DepthTest);              // x   y   z 
             model += Matrix4.CreateTranslation(new Vector3(1f, 0f, 0f));
