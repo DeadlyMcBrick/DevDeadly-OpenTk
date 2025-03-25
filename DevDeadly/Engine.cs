@@ -13,6 +13,8 @@ namespace DevDeadly
 {
     public class Game : GameWindow
     {
+        private ImGuiController _imguiController;
+        private bool _showGuiMenu = false;
         Chunk chunk;
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
@@ -166,7 +168,8 @@ namespace DevDeadly
         };
 
         //do the twiceShaders connect it to one
-        private readonly float[] texCoords = {
+        private readonly float[] texCoords = 
+        {
         0.0f, 0.0f,  // lower-left corner  
         1.0f, 0.0f,  // lower-right corner
         0.5f, 1.0f   // top-center corner
@@ -228,19 +231,38 @@ namespace DevDeadly
         //}
 
         //Keybinds (Being able to drop some menu to being able to change in the future idk)
+
+        private KeyboardState _lastKeyboardState;
+
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             MouseState mouse = MouseState;
             KeyboardState input = KeyboardState;
 
+
             base.OnUpdateFrame(e);
-            camera.Update(input, mouse, e);    
+            camera.Update(input, mouse, e);
+
+            if (ImGui.GetIO().WantCaptureMouse || ImGui.GetIO().WantCaptureKeyboard)
+                return;
 
             //Keybinds to detect if this is actually is being pressed...
             if (KeyboardState.IsKeyDown(Keys.W)) Console.WriteLine("W pressed");
             if (KeyboardState.IsKeyDown(Keys.A)) Console.WriteLine("A pressed");
             if (KeyboardState.IsKeyDown(Keys.S)) Console.WriteLine("S pressed");
             if (KeyboardState.IsKeyDown(Keys.D)) Console.WriteLine("D pressed");
+            //if (input.IsKeyDown(Keys.Tab) && !_lastKeyboardState.IsKeyDown(Keys.Tab))
+            //{
+            //    _showGuiMenu = !_showGuiMenu;
+            //    Console.WriteLine($"GUI Menu: {(_showGuiMenu ? "Abierto" : "Cerrado")}");
+            //}
+            //_lastKeyboardState = input; 
+
+           if (KeyboardState.IsKeyDown(Keys.Tab))
+            {
+                _showGuiMenu = !_showGuiMenu;
+            }
+
             if (KeyboardState.IsKeyDown(Keys.F))
             {
                 WindowState = WindowState == WindowState.Fullscreen ? WindowState.Normal : WindowState.Fullscreen;
@@ -269,6 +291,9 @@ namespace DevDeadly
             base.OnLoad();
 
             chunk  = new Chunk(new Vector3(0, 0, 0));
+
+            _imguiController = new ImGuiController(ClientSize.X, ClientSize.Y);
+            ImGui.GetStyle().WindowRounding = 5.0f;
 
             //int width = 9;
             //int height = 1;
@@ -333,7 +358,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //Background Color
-            GL.ClearColor(3.0f, 3.0f, 3.0f, 2.0f);
+            GL.ClearColor(0.53f, 0.81f, 0.92f, 1.0f);
 
             timer = Stopwatch.StartNew();
 
@@ -351,8 +376,6 @@ namespace DevDeadly
 
             //camera = new Camera(new Vector3(0.0f, 0.0f, 3.0f);
             camera = new Camera(width, height, Vector3.Zero);
-            CursorState = CursorState.Grabbed;
-
             CursorState = CursorState.Grabbed;
 
             //Structure all the info for the buffer and stuff bla....
@@ -429,8 +452,21 @@ namespace DevDeadly
 
             GL.UseProgram(shaderProgram);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            _imguiController.Update(this, (float)args.Time);
+
+            //ImGui Interface set up
+            ImGui.DockSpaceOverViewport();
+            ImGui.Begin("Debug Info");
+            ImGui.Text($"FPS:{1f / args.Time:0}");
+            ImGui.Text($"Player Pos: {player.position}");
+            ImGui.End();
+            ImGui.ShowDemoWindow();
+            _imguiController.Render();
+
+
             GL.BindVertexArray(VertexArrayObject);
-            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             chunk.Render(shader);
             shader.Use();
 
@@ -442,31 +478,45 @@ namespace DevDeadly
 
             //model = Matrix4.CreateTranslation(new Vector3(cube.Min.X, cube.Min.Y, cube.Min.Z));
 
-            GL.Enable(EnableCap.DepthTest);              // x   y   z 
-            model += Matrix4.CreateTranslation(new Vector3(1f, 0f, 0f));
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            //GL.Enable(EnableCap.DepthTest);              // x   y   z 
+            //model += Matrix4.CreateTranslation(new Vector3(1f, 0f, 0f));
+            //GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
+            //GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            //GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
-            //White color
-            //shader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f)); 
-            //shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            //shader.SetVector3("lightPos", lightPos);
-            //shader.SetVector3("viewPos", camera.position);
+            ////White color
+            ////shader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f)); 
+            ////shader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
+            ////shader.SetVector3("lightPos", lightPos);
+            ////shader.SetVector3("viewPos", camera.position);
 
-            GL.Enable(EnableCap.DepthTest);
-            GL.UniformMatrix4(modelLocation, true, ref model);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            //GL.Enable(EnableCap.DepthTest);
+            //GL.UniformMatrix4(modelLocation, true, ref model);
+            //GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            //GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
+            GL.Clear(ClearBufferMask.DepthBufferBit);
             DrawHUD();
             Context.SwapBuffers();
-
         }
+
+        protected override void OnTextInput(TextInputEventArgs e)
+        {
+            base.OnTextInput(e);
+            _imguiController.PressChar((char)e.Unicode);
+        }
+
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            _imguiController.MouseScroll(e.Offset);
+        }
+
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
         {
             base.OnFramebufferResize(e);
             GL.Viewport(0, 0, e.Width, e.Height);
+            _imguiController?.WindowResized(ClientSize.X, ClientSize.Y);
         }
 
         private void DrawHUD()

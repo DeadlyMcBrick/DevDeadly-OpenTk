@@ -14,7 +14,7 @@ namespace DevDeadly
         public Vector3 Min;
         public Vector3 Max;
 
-        public AABB (Vector3 min, Vector3 max)
+        public AABB(Vector3 min, Vector3 max)
         {
             Min = min;
             Max = max;
