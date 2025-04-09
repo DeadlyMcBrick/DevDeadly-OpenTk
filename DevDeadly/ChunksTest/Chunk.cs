@@ -44,10 +44,11 @@ namespace DevDeadly
         private List<Vector2> chunkUVs;
         private List<uint> chunkIndices;
 
+
         private int VAO;
         //Don't set the value with more than 200, otherwise ur pc will crash :) 
-        const int SIZE = 200;
-        const int HEIGHT = 65;
+        const int SIZE = 32;
+        const int HEIGHT = 16;
         public Vector3 position;
 
         private uint indexCount;
@@ -96,7 +97,7 @@ namespace DevDeadly
             {
                 for (int z = 0; z < SIZE; z++)
                 {
-                    int columnHeight = (int)(heightmap[x, z] * HEIGHT/ 255);
+                    int columnHeight = (int)(heightmap[x, z] / 10);
                     for (int y = 0; y < HEIGHT; y++)
                     {
                         BlockType type = BlockType.EMPTY;
@@ -438,6 +439,11 @@ namespace DevDeadly
             GL.DeleteBuffer(chunkUVVBO);
             GL.DeleteBuffer(chunkIBO);
             GL.DeleteTexture(textureID);
+        }
+
+        public void DrawHUD()
+        {
+
         }
     }
 }

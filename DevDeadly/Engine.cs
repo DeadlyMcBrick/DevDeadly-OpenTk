@@ -13,8 +13,10 @@ namespace DevDeadly
 {
     public class Game : GameWindow
     {
-        private ImGuiController _imguiController;
-        private bool _showGuiMenu = false;
+        //GUI
+        ImGuiController _controller;
+        private bool _showGui = true;
+      
         Chunk chunk;
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader shader;
@@ -200,6 +202,9 @@ namespace DevDeadly
 
 
         // Configuration for the window
+
+        public Game() : base(GameWindowSettings.Default, new NativeWindowSettings() { Size = new Vector2i(1600, 900), APIVersion = new Version(3, 3) })
+        { }
         public Game(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings()
         {
             Size = (X: width, Y: height),
@@ -209,6 +214,8 @@ namespace DevDeadly
         { 
          this.width = width; this.height = height;
         }
+
+
         //public struct Color4
         //{
         //    public float R, G, B, A;
@@ -232,25 +239,47 @@ namespace DevDeadly
 
         //Keybinds (Being able to drop some menu to being able to change in the future idk)
 
-        private KeyboardState _lastKeyboardState;
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            MouseState mouse = MouseState;
-            KeyboardState input = KeyboardState;
-
-
+            //private KeyboardState _lastKeyboardState;
             base.OnUpdateFrame(e);
+
+            MouseState mouse = MouseState;
+            var input = KeyboardState;
+            bool IsCursorGrabbed = false;
             camera.Update(input, mouse, e);
 
-            if (ImGui.GetIO().WantCaptureMouse || ImGui.GetIO().WantCaptureKeyboard)
-                return;
+            //if (ImGui.GetIO().WantCaptureMouse || ImGui.GetIO().WantCaptureKeyboard)
+            //    return;
 
             //Keybinds to detect if this is actually is being pressed...
             if (KeyboardState.IsKeyDown(Keys.W)) Console.WriteLine("W pressed");
             if (KeyboardState.IsKeyDown(Keys.A)) Console.WriteLine("A pressed");
             if (KeyboardState.IsKeyDown(Keys.S)) Console.WriteLine("S pressed");
             if (KeyboardState.IsKeyDown(Keys.D)) Console.WriteLine("D pressed");
+
+            if(input.IsKeyPressed(OpenTK.Windowing.GraphicsLibraryFramework.Keys.G))
+            {
+                _showGui = !_showGui;
+            }
+
+             // !! Only it's being able to hide the cursor but not re activate it idk
+                    //if (input.IsKeyDown(Keys.V))
+
+                    //{
+                    //    IsCursorGrabbed = !IsCursorGrabbed;
+
+                    //    CursorState = IsCursorGrabbed ? CursorState.Grabbed : CursorState.Normal;
+                    //    Console.WriteLine($"IsCursorGrabbed: {IsCursorGrabbed}, CursorState: {CursorState}");
+                    // }
+
+
+            //else
+            //{
+            //    (input)
+            //}
+
             //if (input.IsKeyDown(Keys.Tab) && !_lastKeyboardState.IsKeyDown(Keys.Tab))
             //{
             //    _showGuiMenu = !_showGuiMenu;
@@ -258,10 +287,10 @@ namespace DevDeadly
             //}
             //_lastKeyboardState = input; 
 
-           if (KeyboardState.IsKeyDown(Keys.Tab))
-            {
-                _showGuiMenu = !_showGuiMenu;
-            }
+            //if (KeyboardState.IsKeyDown(Keys.Tab))
+            // {
+            //     _showGuiMenu = !_showGuiMenu;
+            // }
 
             if (KeyboardState.IsKeyDown(Keys.F))
             {
@@ -292,8 +321,12 @@ namespace DevDeadly
 
             chunk  = new Chunk(new Vector3(0, 0, 0));
 
-            _imguiController = new ImGuiController(ClientSize.X, ClientSize.Y);
-            ImGui.GetStyle().WindowRounding = 5.0f;
+            Title += ": OpenTk Version:" + GL.GetString(StringName.Version);
+                        _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
+
+
+            //_imguiController = new ImGuiController(ClientSize.X, ClientSize.Y);
+            //ImGui.GetStyle().WindowRounding = 5.0f;
 
             //int width = 9;
             //int height = 1;
@@ -358,7 +391,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //Background Color
-            GL.ClearColor(0.53f, 0.81f, 0.92f, 1.0f);
+            GL.ClearColor(3.0f, 3.0f, 3.0f, 2.0f);
 
             timer = Stopwatch.StartNew();
 
@@ -376,6 +409,7 @@ namespace DevDeadly
 
             //camera = new Camera(new Vector3(0.0f, 0.0f, 3.0f);
             camera = new Camera(width, height, Vector3.Zero);
+
             CursorState = CursorState.Grabbed;
 
             //Structure all the info for the buffer and stuff bla....
@@ -401,9 +435,22 @@ namespace DevDeadly
             GL.DeleteVertexArray(VertexArrayObject);
             shader.Dispose();
         }
+
+        protected override void OnResize(ResizeEventArgs e)
+        {
+            base.OnResize(e);
+
+            // Update the opengl viewport
+            GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+
+            // Tell ImGui of the new size
+            _controller.WindowResized(ClientSize.X, ClientSize.Y);
+
+        }
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             base.OnRenderFrame(args);
+
 
             //Cube Model and rotation
             Matrix4 model = Matrix4.Identity;
@@ -451,26 +498,33 @@ namespace DevDeadly
             GL.UniformMatrix4(projectionLocation, true, ref projection);
 
             GL.UseProgram(shaderProgram);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            _controller.Update(this, (float)args.Time);
 
-            _imguiController.Update(this, (float)args.Time);
 
-            //ImGui Interface set up
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+
+            // Enable Docking
             ImGui.DockSpaceOverViewport();
-            ImGui.Begin("Debug Info");
-            ImGui.Text($"FPS:{1f / args.Time:0}");
-            ImGui.Text($"Player Pos: {player.position}");
-            ImGui.End();
-            ImGui.ShowDemoWindow();
-            _imguiController.Render();
 
+            if (_showGui)
+            {
+                ImGui.ShowDemoWindow();
+            }
+
+            _controller.Render();
+
+            ImGuiController.CheckGLError("End of frame");
 
             GL.BindVertexArray(VertexArrayObject);
+
+            //Being able to not render everything just in case the loop is default.
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             chunk.Render(shader);
+
             shader.Use();
 
-            //If I wanna render 2 images dont use shader here.
+            //If I wanna render 2 images dont use shader here.9
             shader.Use();
 
             texture.Use(TextureUnit.Texture0);
@@ -495,33 +549,27 @@ namespace DevDeadly
             //GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             //GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
-            GL.Clear(ClearBufferMask.DepthBufferBit);
-            DrawHUD();
+            //DrawHUD();
             Context.SwapBuffers();
         }
 
         protected override void OnTextInput(TextInputEventArgs e)
         {
             base.OnTextInput(e);
-            _imguiController.PressChar((char)e.Unicode);
+            _controller.PressChar((char)e.Unicode);
         }
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
-            _imguiController.MouseScroll(e.Offset);
+            _controller.MouseScroll(e.Offset);
         }
 
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
         {
             base.OnFramebufferResize(e);
             GL.Viewport(0, 0, e.Width, e.Height);
-            _imguiController?.WindowResized(ClientSize.X, ClientSize.Y);
-        }
-
-        private void DrawHUD()
-        {
-         
+            _controller?.WindowResized(ClientSize.X, ClientSize.Y);
         }
 
     }

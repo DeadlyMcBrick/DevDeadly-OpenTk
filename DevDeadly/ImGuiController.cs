@@ -40,7 +40,7 @@ namespace DevDeadly
         private bool CompatibilityProfile;
 
         /// <summary>
-        /// Constructs a new ImGuiController.
+        /// Constructs a new ImGuiControeller.
         /// </summary>
         public ImGuiController(int width, int height)
         {
@@ -56,7 +56,7 @@ namespace DevDeadly
 
             CompatibilityProfile = (GL.GetInteger((GetPName)All.ContextProfileMask) & (int)All.ContextCompatibilityProfileBit) != 0;
 
-            IntPtr context = ImGui.CreateContext();
+            IntPtr context = ImGui.CreateContext();     
             ImGui.SetCurrentContext(context);
             var io = ImGui.GetIO();
             io.Fonts.AddFontDefault();
@@ -66,7 +66,7 @@ namespace DevDeadly
             io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
 
             CreateDeviceResources();
-
+                
             SetPerFrameImGuiData(1f / 60f);
 
             ImGui.NewFrame();
@@ -110,35 +110,34 @@ namespace DevDeadly
 
             string VertexSource = @"#version 330 core
 
-            uniform mat4 projection_matrix;
+         uniform mat4 projection_matrix;
 
-            layout(location = 0) in vec2 in_position;
-            layout(location = 1) in vec2 in_texCoord;
-            layout(location = 2) in vec4 in_color;
+        layout(location = 0) in vec2 in_position;
+        layout(location = 1) in vec2 in_texCoord;
+        layout(location = 2) in vec4 in_color;
 
-            out vec4 color;
-            out vec2 texCoord;
+        out vec4 color;
+        out vec2 texCoord;
 
-            void main()
-            {
-                gl_Position = projection_matrix * vec4(in_position, 0, 1);
-                color = in_color;
-                texCoord = in_texCoord;
-            }";
+        void main()
+{
+    gl_Position = projection_matrix * vec4(in_position, 0, 1);
+    color = in_color;
+    texCoord = in_texCoord;
+}";
             string FragmentSource = @"#version 330 core
 
-            uniform sampler2D in_fontTexture;
+        uniform sampler2D in_fontTexture;
 
-            in vec4 color;
-            in vec2 texCoord;
+        in vec4 color;
+in vec2 texCoord;
 
-            out vec4 outputColor;
+out vec4 outputColor;
 
-            void main()
-
-            {
-                outputColor = color * texture(in_fontTexture, texCoord);
-            }";
+void main()
+{
+    outputColor = color * texture(in_fontTexture, texCoord);
+}";
 
             _shader = CreateProgram("ImGui", VertexSource, FragmentSource);
             _shaderProjectionMatrixLocation = GL.GetUniformLocation(_shader, "projection_matrix");
