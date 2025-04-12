@@ -552,6 +552,7 @@ namespace DevDeadly
             _controller.Render();
 
             GL.BindVertexArray(VertexArrayObject);
+            //Testing shit
 
             //Being able to not render everything just in case the loop is default.
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
