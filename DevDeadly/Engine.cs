@@ -8,6 +8,39 @@ using OpenTK.Mathematics;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using ImGuiNET;
 using static DevDeadly.Chunk;
+using System.Runtime.CompilerServices;
+
+
+/*
+  ⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠀
+⠀⠀⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠁⠀
+⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡀⠀
+⠀⢸⠁⠇⠀⠀⠀⠀⢀⠠⠔⠂⠀⠀⠒⠂⠤⡀⠀⠀⠀⠀⠸⠁⡇⠀
+⠀⢸⣀⡌⠀⡀⣠⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⡀⢁⣀⡇⠀
+⠀⠘⣧⣀⣠⣿⠃⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠘⣿⣦⣀⣼⠃⠀
+⢀⠀⠘⢿⣿⣃⡞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠱⣜⣿⣿⠋⠀⡀
+⠈⣧⠀⢸⡟⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⢻⡇⠀⣴⠁
+⠀⢸⢃⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⡘⡇⠀
+⠀⠸⡇⢻⠀⢠⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⡟⢸⠇⠀
+⠀⠀⠱⠀⡂⠈⠉⢏⠓⢄⠀⡀⠀⠀⢀⠀⡠⠚⡩⠉⠁⢸⠁⠈⠀⠀
+⠀⠀⢂⢰⣧⠀⠀⠀⠉⠉⠉⢀⠀⠀⡀⠉⠉⠉⠀⠀⠀⣼⡇⡸⠀⠀
+⠀⠀⠘⢾⣿⠱⠤⣄⠤⢾⠀⢸⠀⠀⡇⠀⡷⠤⣠⠤⠎⣿⡷⠃⠀⠀
+⠀⠀⠀⠀⢻⡆⡇⠠⡆⠢⢈⠙⢤⡤⠃⡁⠔⢲⠄⢸⢠⡟⠀⠀⠀⠀
+⠀⠀⠀⠀⠈⣧⢸⢻⣿⣷⣰⣬⣍⣩⣥⣇⣾⣿⡏⡇⣼⠁⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠸⣼⠨⡌⢸⢻⣿⣿⣿⣿⠟⡏⢡⠅⣧⠇⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢻⠃⠘⣶⣠⡠⣠⣄⢄⣄⣴⠃⠐⡟⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢧⠀⠣⠤⠒⠒⠓⠒⠤⠜⠀⡼⠁⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠈⠳⡀⠀⠀⠀⠀⠀⠀⢀⠜⠁⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠐⠒⠀⠀⠒⠂⠁⠀⠀⠀⠀⠀             
+/\  _`\                  /\  _`\                     /\ \ /\_ \               
+\ \ \/\ \     __   __  __\ \ \/\ \     __     __     \_\ \\//\ \    __  __    
+ \ \ \ \ \  /'__`\/\ \/\ \\ \ \ \ \  /'__`\ /'__`\   /'_` \ \ \ \  /\ \/\ \   
+  \ \ \_\ \/\  __/\ \ \_/ |\ \ \_\ \/\  __//\ \L\.\_/\ \L\ \ \_\ \_\ \ \_\ \                      
+   \ \____/\ \____\\ \___/  \ \____/\ \____\ \__/.\_\ \___, _\/\____\\/`____ \ 
+    \/___/  \/____/ \/__/    \/___/  \/____/\/__/\/_/\/__, _ /\/____/ `/___/> \
+                                                                        /\___/
+                                                                        \/__/ */
+
 
 namespace DevDeadly
 {
@@ -264,15 +297,15 @@ namespace DevDeadly
                 _showGui = !_showGui;
             }
 
-             // !! Only it's being able to hide the cursor but not re activate it idk
-                    //if (input.IsKeyDown(Keys.V))
+            // !! Only it's being able to hide the cursor but not re activate it idk
+            if (input.IsKeyDown(Keys.V))
 
-                    //{
-                    //    IsCursorGrabbed = !IsCursorGrabbed;
+            {
+                IsCursorGrabbed = !IsCursorGrabbed;
 
-                    //    CursorState = IsCursorGrabbed ? CursorState.Grabbed : CursorState.Normal;
-                    //    Console.WriteLine($"IsCursorGrabbed: {IsCursorGrabbed}, CursorState: {CursorState}");
-                    // }
+                CursorState = IsCursorGrabbed ? CursorState.Grabbed : CursorState.Normal;
+                Console.WriteLine($"IsCursorGrabbed: {IsCursorGrabbed}, CursorState: {CursorState}");
+            }
 
 
             //else
@@ -322,7 +355,7 @@ namespace DevDeadly
             chunk  = new Chunk(new Vector3(0, 0, 0));
 
             Title += ": OpenTk Version:" + GL.GetString(StringName.Version);
-                        _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
+            _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
 
 
             //_imguiController = new ImGuiController(ClientSize.X, ClientSize.Y);
@@ -410,7 +443,7 @@ namespace DevDeadly
             //camera = new Camera(new Vector3(0.0f, 0.0f, 3.0f);
             camera = new Camera(width, height, Vector3.Zero);
 
-            CursorState = CursorState.Grabbed;
+            //CursorState = CursorState.Grabbed;
 
             //Structure all the info for the buffer and stuff bla....
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -501,26 +534,28 @@ namespace DevDeadly
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             _controller.Update(this, (float)args.Time);
 
-
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
             // Enable Docking
-            ImGui.DockSpaceOverViewport();
 
             if (_showGui)
             {
+                //DockSpace made my background dark taking the whole rez of the screen.
+                //ImGui.DockSpaceOverViewport();
                 ImGui.ShowDemoWindow();
+                //_controller.Render();
+                ImGuiController.CheckGLError("End of frame");
             }
 
+            //Don't forget to know the correct order of rendering.
+            chunk.Render(shader);
             _controller.Render();
-
-            ImGuiController.CheckGLError("End of frame");
 
             GL.BindVertexArray(VertexArrayObject);
 
             //Being able to not render everything just in case the loop is default.
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-            chunk.Render(shader);
+            //_controller.Render();
 
             shader.Use();
 
