@@ -7,6 +7,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using static DevDeadly.Chunk;
 
 namespace DevDeadly
 {
@@ -47,10 +48,12 @@ namespace DevDeadly
         void main()
          
         {
-            // Mezclar las texturas
-            vec4 color1 = texture(texture0, texCoord);
-            vec4 color2 = texture(texture1, texCoord);
-            FragColor = mix(color1, color2, 0.4);
+
+        // Mezclar las texturas
+        vec4 color1 = texture(texture0, texCoord);
+        vec4 color2 = texture(texture1, texCoord);
+        FragColor = mix(color1, color2, 0.4);
+
         }";
  
         //Build
@@ -99,11 +102,30 @@ namespace DevDeadly
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-        private readonly uint[] indices = {
-            
+        private readonly uint[] indices = 
+        
+        {
              0, 1, 3,  // First 
              1, 2, 3   // Second triangule
         };
+        
+        private readonly float[] quadVertices = 
+        
+        {
+            // Positions       // Texture Coords
+            -0.5f, -0.5f,      0.0f, 0.0f, // Bottom-left
+             0.5f, -0.5f,      1.0f, 0.0f, // Bottom-right
+             0.5f,  0.5f,      1.0f, 1.0f, // Top-right
+            -0.5f,  0.5f,      0.0f, 1.0f  // Top-left
+        };
+
+        private readonly uint[] quadIndices = 
+        
+        {
+            0, 1, 2,
+            2, 3, 0
+        };
+
 
         //GUI
         ImGuiController _controller;
@@ -120,13 +142,16 @@ namespace DevDeadly
         private Stopwatch timer = Stopwatch.StartNew();
         public Shader lightingShader;
         public int shaderProgram;
+        public int state;
         public Shader lampShader;
         public Shader shader;
+        //public Tool tool;
 
         //TEXTURE SET
         public Matrix4 projection;
         public Texture texture;
         public Texture texture2;
+        public Texture texture3;
         public Matrix4 model;
         public Matrix4 view;
 
@@ -191,15 +216,33 @@ namespace DevDeadly
             {
                 Close();
             }
-        }
 
+            if (KeyboardState.IsKeyDown(Keys.F));
+           
+            //This method is going to be added to make current of pressing the key.
+            if(KeyboardState.IsKeyDown(Keys.D))
+            {
+                MakeCurrent();
+            }
+        }
         protected override void OnLoad()
         {
             base.OnLoad();
 
-            chunk  = new Chunk(new Vector3(0, 0, 0));
+            //Inventory inicialization
+            InventorySlot[,] HUD = new InventorySlot[10, 4];
+
+            //Audio Inicialization
+            AudioPlayer player = new AudioPlayer("wrld.wav");
+            player.Play();
+            Console.WriteLine("Reproduciendo sonido..." + player);
+            Thread.Sleep(3000);
+
+            //Chunk inicializated
+            chunk = new Chunk(new Vector3(0, 0, 0));
             Title += ": OpenTk Version:" + GL.GetString(StringName.Version);
 
+            //Controller inicializated
             _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
             camera = new Camera(width, height, Vector3.Zero);
 
@@ -210,7 +253,7 @@ namespace DevDeadly
             //GL.FrontFace(FrontFaceDirection.Cw);
             //GL.Enable(EnableCap.CullFace);
             //GL.CullFace(CullFaceMode.Back);
-            //CursorState = CursorState.Grabbed;
+            CursorState = CursorState.Grabbed;
 
             //String Path
             shader = new Shader(vertexShaderSource, fragmentShaderSource);
@@ -219,9 +262,14 @@ namespace DevDeadly
             texture = new Texture(imagePath);
             texture.Use(TextureUnit.Texture0);
 
+            //Replaced by inventory slots
             string imagePath2 = "atlas.png";
             texture2 = new Texture(imagePath2);
             texture2.Use(TextureUnit.Texture1);
+
+            string imagePath3 = "Slots.png";
+            texture3 = new Texture(imagePath3);
+            texture3.Use(TextureUnit.Texture2);
 
             //To being able to put both images in the render have to check it if i have another shader.use
             shader.Use();
@@ -229,6 +277,7 @@ namespace DevDeadly
             //To use the function for the frags
             shader.SetInt("texture0", 0);
             shader.SetInt("texture1", 1);
+            shader.SetInt("texture2", 2);
 
             //Vertices
             GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
@@ -276,7 +325,6 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
             GL.BindVertexArray(0);
-            
             GL.GetInteger(GetPName.MaxVertexAttribs, out nrAttribute);
 
             shader.Use();
@@ -311,7 +359,8 @@ namespace DevDeadly
             Matrix4 model = Matrix4.Identity;
             Matrix4 view = camera.GetViewMatrix();
             Matrix4 projection = camera.GetProjectionMatrix();
-
+            Matrix4 OrthoProjection = Matrix4.CreateOrthographicOffCenter(0, width, height, 1.0f, 1.0f, 1.0f);
+            
             //Matrix4 outlineModel = Matrix4.CreateScale(1.05f) * model;
             //model = Matrix4.CreateRotationZ(zRot) * Matrix4.CreateTranslation(0f, 0f, -5f);
             //zRot += 0.001f;
@@ -320,10 +369,12 @@ namespace DevDeadly
             int modelLocation = GL.GetUniformLocation(shader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(shader.Handle, "view");
             int projectionLocation = GL.GetUniformLocation(shader.Handle, "projection");
-           
+            //int OrthoLocation = GL.GetUniformLocation(shader.Handle, "Being taken idk....");
+
             GL.UniformMatrix4(modelLocation, true, ref model);
             GL.UniformMatrix4(viewLocation, true, ref view);
             GL.UniformMatrix4(projectionLocation, true, ref projection);
+            //GL.UniformMatrix4(OrthoLocation, true, ref OrthoProjection);
 
             GL.UseProgram(shaderProgram);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
@@ -342,16 +393,15 @@ namespace DevDeadly
             _controller.Render();
             GL.BindVertexArray(VertexArrayObject);
 
-            //Being able to not render everything just in case the loop is default.
+            //Being able to not render everything just in case the loop is default // the line border.
             //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
 
             shader.Use();
 
             //If I want render 2 images dont use shader here.9
-            shader.Use();
-
             texture.Use(TextureUnit.Texture0);
             texture2.Use(TextureUnit.Texture1);
+            texture3.Use(TextureUnit.Texture2);
 
             //model = Matrix4.CreateTranslation(new Vector3(cube.Min.X, cube.Min.Y, cube.Min.Z));
             Context.SwapBuffers();
@@ -370,7 +420,7 @@ namespace DevDeadly
         }
 
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
-        {
+        { 
             base.OnFramebufferResize(e);
             GL.Viewport(0, 0, e.Width, e.Height);
             _controller?.WindowResized(ClientSize.X, ClientSize.Y);

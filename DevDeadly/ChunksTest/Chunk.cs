@@ -44,11 +44,10 @@ namespace DevDeadly
         private List<Vector2> chunkUVs;
         private List<uint> chunkIndices;
 
-
         private int VAO;
         //Don't set the value with more than 200, otherwise ur pc will crash :) 
-        const int SIZE = 32;
-        const int HEIGHT = 16;
+        const int SIZE = 36;
+        const int HEIGHT = 12;
         public Vector3 position;
 
         private uint indexCount;
@@ -97,7 +96,7 @@ namespace DevDeadly
             {
                 for (int z = 0; z < SIZE; z++)
                 {
-                    int columnHeight = (int)(heightmap[x, z] / 10);
+                    int columnHeight = (int)(heightmap[x, z]  / 10);
                     for (int y = 0; y < HEIGHT; y++)
                     {
                         BlockType type = BlockType.EMPTY;
@@ -226,7 +225,7 @@ namespace DevDeadly
                 }
             }
         }
-       
+
         public void GenFaces(float[,] heightmap)
         {
             for (int x = 0; x < SIZE; x++)
@@ -235,123 +234,58 @@ namespace DevDeadly
                 {
                     for (int y = 0; y < HEIGHT; y++)
                     {
-                        int numFaces = 0;
-
                         if (chunkBlocks[x, y, z].type != BlockType.EMPTY)
                         {
-                            //Left Faces 
-                            if (x > 0)
-                            {
-                                if (chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
-                                {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
-                                    numFaces++;
-                                }
-                                else
-                                {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
-                                    numFaces++;
-                                }
+                            // LEFT
+                            if (x == 0 || chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
+                                IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
 
-                                //RIght Faces
+                            // RIGHT
+                            if (x == SIZE - 1 || chunkBlocks[x + 1, y, z].type == BlockType.EMPTY)
+                                IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
 
-                                if (x < SIZE - 1)
-                                {
-                                    if (chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
-                                    {
-                                        IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
-                                        numFaces++;
-                                    }
-                                }
+                            // BOTTOM
+                            if (y == 0 || chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
+                                IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
 
-                                else
-                                {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
-                                    numFaces++;
-                                }
+                            // TOP
+                            if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
+                                IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
 
-                                //Top Faces
+                            // FRONT
+                            if (z == SIZE - 1 || chunkBlocks[x, y, z + 1].type == BlockType.EMPTY)
+                                IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
 
-                                if (y < HEIGHT - 1)
-                                {
-                                    if (chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
-                                    {
-                                        IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
-                                        numFaces++;
-                                    }
-                                }
-
-                                else
-                                {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
-                                    numFaces++;
-                                }
-
-                                //Bottom Face
-                                if (y > 0)
-                                {
-                                    if (chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
-                                    {
-                                        IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
-                                        numFaces++;
-                                    }
-                                }
-
-                                else
-                                {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
-                                    numFaces++;
-                                }
-
-                                //Front Face 
-
-                                if (z < 0)
-                                {
-                                    if (chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
-                                    {
-                                        IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
-                                        numFaces++;
-                                    }
-                                }
-
-                                else
-                                {
-                                    IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
-                                    numFaces++;
-                                }
-
-                                //Back face
-                                if (z > 0)
-                                {
-                                    if (chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
-                                    {
-                                        IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
-                                        numFaces++;
-                                    }
-
-                                    else
-                                    {
-                                        IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
-                                        numFaces++;
-                                    }
-                                }
-
-
-                                AddIndices(numFaces);
-                            }
+                            // BACK
+                            if (z == 0 || chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
+                                IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
                         }
                     }
                 }
             }
         }
 
-        public void IntegrateFace(Block block, Faces face)
+
+        private void IntegrateFace(Block block, Faces face)
         {
-            var faceData = block.GetFace(face);
-            chunkVerts.AddRange(faceData.vertices);
-            chunkUVs.AddRange(faceData.uv);
-            Console.WriteLine("Integrating face: " + face.ToString());
+            FaceData data = block.GetFace(face);
+            foreach (var v in data.vertices)
+                chunkVerts.Add(v);
+            foreach (var uv in data.uv)
+                chunkUVs.Add(uv);
+
+            int baseIndex = chunkVerts.Count - data.vertices.Count;
+            for (int i = 0; i < data.vertices.Count; i += 4)
+            {
+                chunkIndices.Add((uint)(baseIndex + 0));
+                chunkIndices.Add((uint)(baseIndex + 1));
+                chunkIndices.Add((uint)(baseIndex + 2));
+                chunkIndices.Add((uint)(baseIndex + 2));
+                chunkIndices.Add((uint)(baseIndex + 3));
+                chunkIndices.Add((uint)(baseIndex + 0));
+            }
         }
+
 
         //Create the blocks chunks
         public void AddIndices(int amtFaces)
@@ -370,33 +304,35 @@ namespace DevDeadly
         }
 
         public void BuildChunk()
-        {
+{
+    VAO = GL.GenVertexArray();
+    GL.BindVertexArray(VAO);
 
-            VAO = GL.GenVertexArray();
-            GL.BindVertexArray(VAO);
+    // Vertex buffer
+    chunkVertexVBO = GL.GenBuffer();
+    GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
+    GL.BufferData(BufferTarget.ArrayBuffer, chunkVerts.Count * Vector3.SizeInBytes, chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
+    GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
+    GL.EnableVertexAttribArray(0);
 
-            chunkVertexVBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, new IntPtr(chunkVerts.Count * Vector3.SizeInBytes), chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
-            GL.EnableVertexAttribArray(0);
+    // UV buffer
+    chunkUVVBO = GL.GenBuffer();
+    GL.BindBuffer(BufferTarget.ArrayBuffer, chunkUVVBO);
+    GL.BufferData(BufferTarget.ArrayBuffer, chunkUVs.Count * Vector2.SizeInBytes, chunkUVs.ToArray(), BufferUsageHint.StaticDraw);
+    GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
+    GL.EnableVertexAttribArray(1);
 
-            chunkUVVBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkUVVBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, new IntPtr(chunkUVs.Count * Vector2.SizeInBytes), chunkUVs.ToArray(), BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
-            GL.EnableVertexAttribArray(1);
-
-            chunkIBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, new IntPtr(chunkIndices.Count * sizeof(uint)), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
+    // Index buffer
+    chunkIBO = GL.GenBuffer();
+    GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
+    GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
             textureID = LoadTexture("atlas.png");
+            indexCount = (uint)chunkIndices.Count;
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
-            GL.BindVertexArray(0);
-        }
+    GL.BindVertexArray(0);
+}
+
 
         public int LoadTexture(string path)
         {
@@ -443,7 +379,6 @@ namespace DevDeadly
 
         public void DrawHUD()
         {
-
         }
     }
 }

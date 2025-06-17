@@ -94,7 +94,7 @@ namespace DevDeadly.ChunksTest
                      new Vector2 (4f/16f, 1f),
                      new Vector2 (3f/16f, 1f),
                      new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (4f/16f, 15f/16f),
+                     new Vector2 (4f/16f, 15f/16f),//T2 E: 4 Suits
                 }},
 
                   {Faces.TOP, new List<Vector2>()
@@ -112,9 +112,6 @@ namespace DevDeadly.ChunksTest
                      new Vector2 (3f/16f, 15f/16f),
                      new Vector2 (4f/16f, 15f/16f),
                 }},
-
-
-
             }}
         };
     }
