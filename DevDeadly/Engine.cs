@@ -8,9 +8,29 @@ using OpenTK.Windowing.Desktop;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using static DevDeadly.Chunk;
+using DevDeadly.Shaders;
 
 namespace DevDeadly
 {
+    //AABB Collision next hope...   
+     public class BoundingBox
+    {
+        public Vector3 Min { get; }
+        public Vector3 Max { get; }
+
+        public BoundingBox(Vector3 min, Vector3 max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public bool Intersects(BoundingBox other)
+        {
+            return (Min.X <= other.Max.X && Max.X >= other.Min.X) &&
+                   (Min.Y <= other.Max.Y && Max.Y >= other.Min.Y) &&
+                   (Min.Z <= other.Max.Z && Max.Z >= other.Min.Z);
+        }
+    }
     public class Game : GameWindow
     {
         //Vertex
@@ -109,24 +129,6 @@ namespace DevDeadly
              1, 2, 3   // Second triangule
         };
         
-        private readonly float[] quadVertices = 
-        
-        {
-            // Positions       // Texture Coords
-            -0.5f, -0.5f,      0.0f, 0.0f, // Bottom-left
-             0.5f, -0.5f,      1.0f, 0.0f, // Bottom-right
-             0.5f,  0.5f,      1.0f, 1.0f, // Top-right
-            -0.5f,  0.5f,      0.0f, 1.0f  // Top-left
-        };
-
-        private readonly uint[] quadIndices = 
-        
-        {
-            0, 1, 2,
-            2, 3, 0
-        };
-
-
         //GUI
         ImGuiController _controller;
         private bool _showGui = true;
@@ -185,10 +187,10 @@ namespace DevDeadly
             camera.Update(input, mouse, e);
 
             //Keybinds to detect if this is actually is being pressed...
-            if (KeyboardState.IsKeyDown(Keys.W)) Console.WriteLine("W pressed");
-            if (KeyboardState.IsKeyDown(Keys.A)) Console.WriteLine("A pressed");
-            if (KeyboardState.IsKeyDown(Keys.S)) Console.WriteLine("S pressed");
-            if (KeyboardState.IsKeyDown(Keys.D)) Console.WriteLine("D pressed");
+            if (KeyboardState.IsKeyDown(Keys.W));
+            if (KeyboardState.IsKeyDown(Keys.A));
+            if (KeyboardState.IsKeyDown(Keys.S));
+            if (KeyboardState.IsKeyDown(Keys.D));
 
             if(input.IsKeyPressed(OpenTK.Windowing.GraphicsLibraryFramework.Keys.G))
             {
@@ -217,13 +219,10 @@ namespace DevDeadly
                 Close();
             }
 
+            //This is going to be different to the other one
             if (KeyboardState.IsKeyDown(Keys.F));
            
-            //This method is going to be added to make current of pressing the key.
-            if(KeyboardState.IsKeyDown(Keys.D))
-            {
-                MakeCurrent();
-            }
+            
         }
         protected override void OnLoad()
         {
@@ -244,7 +243,8 @@ namespace DevDeadly
 
             //Controller inicializated
             _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
-            camera = new Camera(width, height, Vector3.Zero);
+            camera = new Camera(10f, 10f, Vector3.Zero);
+            camera.SetObstacles(chunk.SolidBlockAABBs);
 
             VertexArrayObject = GL.GenVertexArray();
             VertexBufferObject = GL.GenBuffer();

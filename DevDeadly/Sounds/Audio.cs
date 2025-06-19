@@ -55,7 +55,7 @@ public class AudioPlayer : IDisposable
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
     }
-
+    
     private void LoadWave(string filePath, out byte[] data, out ALFormat format, out int sampleRate)
     {
         using var reader = new BinaryReader(File.Open(filePath, FileMode.Open));
@@ -63,7 +63,6 @@ public class AudioPlayer : IDisposable
         reader.ReadChars(4); // "RIFF"
         reader.ReadInt32();  // File size
         reader.ReadChars(4); // "WAVE"
-
         reader.ReadChars(4); // "fmt "
         int fmtSize = reader.ReadInt32();
         short audioFormat = reader.ReadInt16();
@@ -94,5 +93,11 @@ public class AudioPlayer : IDisposable
             (2, 16) => ALFormat.Stereo16,
             _ => throw new NotSupportedException("WAV Format not supported idk.")
         };
+    }
+
+    //Being able to set the volume also implemented with the ImGUI.
+    public void SetVolume(float volume)
+    {
+        AL.Source(_source, ALSourcef.Gain, volume);
     }
 }

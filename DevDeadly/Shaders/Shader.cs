@@ -5,9 +5,9 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using DevDeadly;
 
-
-namespace DevDeadly
+namespace DevDeadly.Shaders
 {
     public class Shader
     {

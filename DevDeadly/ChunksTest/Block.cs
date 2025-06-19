@@ -12,6 +12,7 @@ namespace DevDeadly
 {
     class Block
     {
+        public BoundingBox AABB { get; private set; }
         public Vector3 position;
         public BlockType type;
 
@@ -26,13 +27,19 @@ namespace DevDeadly
             {Faces.TOP, new List<Vector2>()},
             {Faces.BOTTOM, new List<Vector2>()},
         };
-        public Block(Vector3 position, BlockType blockType = BlockType.EMPTY){
+
+        public Block(Vector3 position, BlockType blockType = BlockType.EMPTY)
+        {
             type = blockType;
             this.position = position;
 
             if (blockType != BlockType.EMPTY)
             {
+                //Check if this AABB is working...
                 blockUV = TextureData.blockTypeUVs[blockType];
+                Vector3 min = position - new Vector3(0.5f);
+                Vector3 max = position + new Vector3(0.5f);
+                AABB = new BoundingBox(min, max);
             }
 
             faces = new Dictionary<Faces, FaceData>

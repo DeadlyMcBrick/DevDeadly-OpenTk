@@ -3,7 +3,7 @@ using System.IO;
 using OpenTK.Graphics.OpenGL4;
 using StbImageSharp;
 
-namespace DevDeadly
+namespace DevDeadly.Shaders
 {
 }
 
