@@ -29,6 +29,7 @@ namespace DevDeadly.Shaders
             GL.ShaderSource(fragmentShader, fragmentShaderSource);
             CompileShader(fragmentShader);
 
+
             Handle = GL.CreateProgram();
             GL.AttachShader(Handle, vertexShader);
             GL.AttachShader(Handle, fragmentShader);
@@ -131,7 +132,15 @@ namespace DevDeadly.Shaders
             GL.UseProgram(shaderProgram);
             int location = GL.GetUniformLocation(Handle, name);
             GL.UniformMatrix4(location, true, ref matrix);
+            int loc = GL.GetUniformLocation(Handle, "objectColor");
+            Console.WriteLine($"objectColor location: {loc}");
+
         }
+        public void SetBool(string name, bool value)
+        {
+            GL.Uniform1(GL.GetUniformLocation(Handle, name), value ? 1 : 0);
+        }
+
 
         public void SetVector3(string name, Vector3 vector)
         {
@@ -142,7 +151,7 @@ namespace DevDeadly.Shaders
             }
             else
             {
-                Console.WriteLine($"Uniform '{name}' no encontrado en el shader.");
+                Console.WriteLine($"Uniform '{name}' is not being found.");
             }
         }
     }

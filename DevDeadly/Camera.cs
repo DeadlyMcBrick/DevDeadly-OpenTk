@@ -101,20 +101,22 @@ namespace DevDeadly
                 position = newPosition;
             }
 
+            //if(input.IsKeyDown(Keys.Space)) newPosition -= up * SPEED * (float)e.Time;
+
+            //if(!CheckCollision(newPosition))
+            //{
+            //    position = newPosition;
+            //}
+
             if (input.IsKeyDown(Keys.Space))
             {
                 position.Y += SPEED * (float)e.Time;
             }
+
             if (input.IsKeyDown(Keys.LeftControl))
             {
                 position.Y -= SPEED * (float)e.Time;
             }
-
-            // check colision b4 moving 
-            //if (!checkcollision(newposition))
-            //{
-            //    position = newposition;
-            //}
 
             // Mouse Rotation
             if (firstMove)

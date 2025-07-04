@@ -18,8 +18,8 @@ namespace DevDeadly
 
         private int VAO;
         //Don't set the value with more than 200, otherwise ur pc will crash :) 
-        const int SIZE = 36;
-        const int HEIGHT = 12;
+        const int SIZE = 59;
+        const int HEIGHT = 15;
         public Vector3 position;
         private uint indexCount;
         private int chunkVertexVBO;
@@ -163,7 +163,6 @@ namespace DevDeadly
                 chunkIndices.Add(2 + indexCount);
                 chunkIndices.Add(3 + indexCount);
                 chunkIndices.Add(0 + indexCount);
-
                 indexCount += 4;
             }
         }

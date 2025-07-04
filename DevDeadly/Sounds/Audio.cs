@@ -55,7 +55,7 @@ public class AudioPlayer : IDisposable
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
     }
-    
+
     private void LoadWave(string filePath, out byte[] data, out ALFormat format, out int sampleRate)
     {
         using var reader = new BinaryReader(File.Open(filePath, FileMode.Open));

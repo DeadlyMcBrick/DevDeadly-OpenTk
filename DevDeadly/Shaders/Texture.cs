@@ -10,6 +10,8 @@ namespace DevDeadly.Shaders
 public class Texture
 {
     public int Handle { get; private set; }
+    public int ID => Handle; 
+
 
     public Texture(string path)
     {

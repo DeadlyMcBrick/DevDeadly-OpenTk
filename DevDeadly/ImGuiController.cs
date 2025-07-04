@@ -14,7 +14,6 @@ namespace DevDeadly
     public class ImGuiController : IDisposable
     {
         private bool _frameBegun;
-
         private int _vertexArray;
         private int _vertexBuffer;
         private int _vertexBufferSize;
@@ -24,18 +23,15 @@ namespace DevDeadly
         //private Texture _fontTexture;
 
         private int _fontTexture;
-
         private int _shader;
         private int _shaderFontTextureLocation;
         private int _shaderProjectionMatrixLocation;
-
         private int _windowWidth;
         private int _windowHeight;
 
         private System.Numerics.Vector2 _scaleFactor = System.Numerics.Vector2.One;
 
         private static bool KHRDebugAvailable = false;
-
         private int GLVersion;
         private bool CompatibilityProfile;
 
@@ -110,21 +106,22 @@ namespace DevDeadly
 
             string VertexSource = @"#version 330 core
 
-         uniform mat4 projection_matrix;
+                     uniform mat4 projection_matrix;
 
-        layout(location = 0) in vec2 in_position;
-        layout(location = 1) in vec2 in_texCoord;
-        layout(location = 2) in vec4 in_color;
+                    layout(location = 0) in vec2 in_position;
+                    layout(location = 1) in vec2 in_texCoord;
+                    layout(location = 2) in vec4 in_color;
 
-        out vec4 color;
-        out vec2 texCoord;
+                    out vec4 color;
+                    out vec2 texCoord;
 
-        void main()
-{
-    gl_Position = projection_matrix * vec4(in_position, 0, 1);
-    color = in_color;
-    texCoord = in_texCoord;
-}";
+                    void main()
+            {
+                gl_Position = projection_matrix * vec4(in_position, 0, 1);
+                color = in_color;
+                texCoord = in_texCoord;
+            }";
+
             string FragmentSource = @"#version 330 core
 
         uniform sampler2D in_fontTexture;
