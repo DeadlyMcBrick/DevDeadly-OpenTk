@@ -134,7 +134,7 @@ public class ShaderLamp
 
     public void SetMatrix4(string name, Matrix4 matrix)
     {
-        GL.UseProgram(lampProgram);
+        GL.UseProgram(Handle2);
         int location = GL.GetUniformLocation(Handle2, name);
         GL.UniformMatrix4(location, true, ref matrix);
     }

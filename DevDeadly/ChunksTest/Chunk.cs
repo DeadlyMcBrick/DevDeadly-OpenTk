@@ -19,7 +19,7 @@ namespace DevDeadly
         private int VAO;
         //Don't set the value with more than 200, otherwise ur pc will crash :) 
         const int SIZE = 59;
-        const int HEIGHT = 15;
+        const int HEIGHT = 30;
         public Vector3 position;
         private uint indexCount;
         private int chunkVertexVBO;
@@ -168,34 +168,34 @@ namespace DevDeadly
         }
 
         public void BuildChunk()
-{
-    VAO = GL.GenVertexArray();
-    GL.BindVertexArray(VAO);
+        {
+            VAO = GL.GenVertexArray();
+            GL.BindVertexArray(VAO);
 
-    // Vertex buffer
-    chunkVertexVBO = GL.GenBuffer();
-    GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
-    GL.BufferData(BufferTarget.ArrayBuffer, chunkVerts.Count * Vector3.SizeInBytes, chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
-    GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
-    GL.EnableVertexAttribArray(0);
+            // Vertex buffer
+            chunkVertexVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, chunkVerts.Count * Vector3.SizeInBytes, chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
+            GL.EnableVertexAttribArray(0);
 
-    // UV buffer
-    chunkUVVBO = GL.GenBuffer();
-    GL.BindBuffer(BufferTarget.ArrayBuffer, chunkUVVBO);
-    GL.BufferData(BufferTarget.ArrayBuffer, chunkUVs.Count * Vector2.SizeInBytes, chunkUVs.ToArray(), BufferUsageHint.StaticDraw);
-    GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
-    GL.EnableVertexAttribArray(1);
+            // UV buffer
+            chunkUVVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkUVVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, chunkUVs.Count * Vector2.SizeInBytes, chunkUVs.ToArray(), BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
+            GL.EnableVertexAttribArray(1);
 
-    // Index buffer
-    chunkIBO = GL.GenBuffer();
-    GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
-    GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
+            // Index buffer
+            chunkIBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
             textureID = LoadTexture("atlas.png");
             indexCount = (uint)chunkIndices.Count;
 
-    GL.BindVertexArray(0);
-}
+            GL.BindVertexArray(0);
+        }
 
 
         public int LoadTexture(string path)
