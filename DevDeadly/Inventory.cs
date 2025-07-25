@@ -1,25 +1,40 @@
 ﻿using System;
-using ImGuiNET;
-using System.Diagnostics;
-using OpenTK.Mathematics;
+using System.IO;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using Vector3 = OpenTK.Mathematics.Vector3;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+using StbImageSharp;
 
-namespace DevDeadly {}
-
-class Item
+namespace DevDeadly
 {
-    public string Name;
-    public string Description;
-    public int BulletsInformation;
 }
 
-class InventorySlot
+public class TextureHUD
 {
-    public Item Item;
-    public int Quantity;
-}
+    //public int Handle { get; private set; }
 
+   public int Handle3;
+
+    public TextureHUD(string path)
+    {
+        Handle3 = GL.GenTexture();
+        GL.BindTexture(TextureTarget.Texture2D, Handle3);
+        StbImage.stbi_set_flip_vertically_on_load(1);
+        ImageResult image = ImageResult.FromStream(File.OpenRead(path), ColorComponents.RedGreenBlueAlpha);
+
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+        //Multiple Texture
+
+        GL.ActiveTexture(TextureUnit.Texture10);
+        GL.BindTexture(TextureTarget.Texture2D, Handle3);
+    }
+
+    public void Use(TextureUnit unit = TextureUnit.Texture10)
+    {
+        GL.ActiveTexture(unit);
+        GL.BindTexture(TextureTarget.Texture2D, Handle3);
+
+    }
+}
