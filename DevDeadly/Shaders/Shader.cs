@@ -133,7 +133,7 @@ namespace DevDeadly.Shaders
             int location = GL.GetUniformLocation(Handle, name);
             GL.UniformMatrix4(location, true, ref matrix);
             int loc = GL.GetUniformLocation(Handle, "objectColor");
-            Console.WriteLine($"objectColor location: {loc}");
+            //Console.WriteLine($"objectColor location: {loc}");
 
         }
         public void SetBool(string name, bool value)

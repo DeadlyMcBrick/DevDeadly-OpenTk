@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Images\InventorySlots.png" />
     <None Remove="Images\Slots.png" />
   </ItemGroup>
 

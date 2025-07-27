@@ -208,7 +208,7 @@ namespace DevDeadly
 
         void main()
         {
-            gl_Position = projection * vec4(IUPosition.xy, 0.0, 1.0);
+            gl_Position = vec4 (IUPosition, 0.0, 2.0);
             TexCoord = IUCoord;
         }";
 
@@ -224,7 +224,6 @@ namespace DevDeadly
         void main()
         {            
             FragColor = texture(textureHUD, TexCoord);
-            //FragColor = vec4(1.0, 1.0, 0.0, 1.0); // Amarillo RGBA
         }";
 
         //Build
@@ -284,23 +283,10 @@ namespace DevDeadly
              0.5f,  0.5f, 0.0f,   1.0f, 1.0f,
              0.5f, -0.5f, 0.0f,   1.0f, 0.0f
         };
-
         uint[] cloudsindices = {
             0, 1, 2,
             2, 3, 0
         };
-
-
-
-        float[] verticesHUD =
-
-        {
-            0f, 0f,     0f, 1f,
-            100f, 0f,   1f, 1f,
-            100f, 100f, 1f, 0f,
-            0f, 100f,   0f, 0f
-        };
-
 
         uint[] indicesHUD =
         {
@@ -387,10 +373,10 @@ namespace DevDeadly
             new Vector3(31.0f, 24.0f, -3.0f)
         };
 
-
         //GUI
         ImGuiController _controller;
         private bool _showGui = true;
+        private bool _hideInventory = true;
 
         // VAO,EBO,VBO (TEXTURE SET)
         private int VertexArrayObject;
@@ -406,9 +392,7 @@ namespace DevDeadly
         //VAO,EBO,VBO (CLOUD SET)
         private int VAOCloud;
 
-       
-
-
+        //VAO, EBO (INVENTORY SET)
         private int VAOInventory;
         private int EBOInventory;
 
@@ -496,13 +480,18 @@ namespace DevDeadly
             camera.Update(input, mouse, e);
 
             //Keybinds to detect if this is actually is being pressed...
-            if (KeyboardState.IsKeyDown(Keys.W)) ;
-            if (KeyboardState.IsKeyDown(Keys.A)) ;
-            if (KeyboardState.IsKeyDown(Keys.S)) ;
-            if (KeyboardState.IsKeyDown(Keys.D)) ;
+            if (KeyboardState.IsKeyDown(Keys.W));
+            if (KeyboardState.IsKeyDown(Keys.A));
+            if (KeyboardState.IsKeyDown(Keys.S));
+            if (KeyboardState.IsKeyDown(Keys.D));
             if (input.IsKeyPressed(OpenTK.Windowing.GraphicsLibraryFramework.Keys.G))
             {
                 _showGui = !_showGui;
+            }
+
+            if (input.IsKeyPressed(Keys.E))
+            {
+                _hideInventory = !_hideInventory;
             }
 
             // !!TODO: Only it's being able to hide the cursor but not re activate it idk
@@ -536,6 +525,20 @@ namespace DevDeadly
             Console.WriteLine("Reproduciendo sonido..." + player);
             Thread.Sleep(3000);
 
+            float aspect = 50f / 256f;
+            float offsetX = 0.0f; 
+            float offsetY = -1.7f;
+            float hudWidth = 1.9f;
+            float hudHeight = 0.3f;
+
+            float[] verticesHUD =
+            {
+                -hudWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
+                 hudWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f, 
+                 hudWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f, 
+                -hudWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
+            };
+          
             //Chunk inicializated
             chunk = new Chunk(new Vector3(0, 0, 0));
             Title += ": OpenTk Version:" + GL.GetString(StringName.Version);
@@ -571,7 +574,7 @@ namespace DevDeadly
             cloudShader = new CloudShader(CloudVerts, CloudFrags);
             inventory = new Inventory(InventoryVerts, InventoryFrags);
 
-            string imagePath = "Slots.png";
+            string imagePath = "Transparency.png";
             texturehud = new TextureHUD(imagePath);
             texturehud.Use(TextureUnit.Texture10);
 
@@ -583,11 +586,11 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLamp);
             GL.BufferData(BufferTarget.ArrayBuffer, lampVertices.Length * sizeof(float), lampVertices, BufferUsageHint.StaticDraw);
 
-            //Light
+            //LIGHT
             int lampPosLocation = lampShader.GetAttribLocation("aPosition");
             GL.EnableVertexAttribArray(lampPosLocation);
             GL.VertexAttribPointer(lampPosLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
-
+            
             int posAttrib = lampShader.GetAttribLocation("aPos");
             GL.EnableVertexAttribArray(posAttrib);
             GL.VertexAttribPointer(posAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
@@ -643,25 +646,10 @@ namespace DevDeadly
             GL.BindVertexArray(0);
 
             VAOInventory = GL.GenVertexArray();
-            //int VBOInventory = GL.GenBuffer();
             EBOInventory = GL.GenBuffer();             
 
             GL.BindVertexArray(VAOInventory);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOInventory);
-
-            //float hudWidth = 256f;
-            //float hudHeight = 64f;
-            //float hudX = (ClientSize.X / 2f) - (hudWidth / 2f);
-            //float hudY = ClientSize.Y - hudHeight - 20f;
-
-            //float[] verticesHUD = new float[]
-            //{
-            //    hudX, hudY,                     0f, 1f, // inferior izquierdo
-            //    hudX + hudWidth, hudY,         1f, 1f, // inferior derecho
-            //    hudX + hudWidth, hudY + hudHeight, 1f, 0f, // superior derecho
-            //    hudX, hudY + hudHeight,        0f, 0f  // superior izquierdo
-            //};
-
             GL.BufferData(BufferTarget.ArrayBuffer, verticesHUD.Length * sizeof(float), verticesHUD, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOInventory);
@@ -683,7 +671,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //Background Color
@@ -715,8 +703,6 @@ namespace DevDeadly
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Enable(EnableCap.DepthTest);
 
-            //Matrix4 modelCloud = Matrix4.CreateScale(10f, 10f, 10f) * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-90f)) *  Matrix4.CreateTranslation(30f, 40.0f, 30f);            
-            //Matrix4 modelCloud = Matrix4.Identity;
             Matrix4 viewCloud = camera.GetViewMatrix();
             Matrix4 projectionCloud = camera.GetProjectionMatrix();
             Vector3 elevation = new Vector3(0f, 15f, 0f);
@@ -727,7 +713,6 @@ namespace DevDeadly
 
                 Vector3 separatedPos = new Vector3(pos.X * separationFactor, pos.Y, pos.Z * separationFactor);
                 Vector3 elevatedPos = separatedPos + elevation;
-
                 Matrix4 modelCloud = Matrix4.CreateScale(20f, 20f, 20f) * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-90f)) * Matrix4.CreateTranslation(elevatedPos);
 
                 cloudShader.Use();
@@ -745,28 +730,20 @@ namespace DevDeadly
             //cloudShader.SetMatrix4("projectioncloud", projectionCloud);
 
             //Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(0, ClientSize.X, ClientSize.Y, 0, -1.0f, 1.0f);
-
-            string imagePath = "Slots.png";
-
-            GL.Disable(EnableCap.DepthTest);
+            //GL.Disable(EnableCap.DepthTest);
 
             //Set for IU interface
-            inventory.Use();
-            inventory.SetInt("textureHUD", 10);
-            texturehud.Use(TextureUnit.Texture0);
-            //GL.BindTexture(TextureTarget.Texture2D, TextureID);
-            GL.BindVertexArray(VAOInventory);
-
-            GL.Enable(EnableCap.DepthTest);
-            GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+            //inventory.Use();
+            //inventory.SetInt("textureHUD", 10);
+            //texturehud.Use(TextureUnit.Texture0);
+            //GL.BindVertexArray(VAOInventory);
 
             //GL.Enable(EnableCap.DepthTest);
-
-            Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(0, ClientSize.X, ClientSize.Y, 0, -1.0f, 1.0f);
-            inventory.SetMatrix4("projection", ortho);
+            //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            //GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
             //Cube Model and rotation
-            Matrix4 model = Matrix4.Identity;
+            //Matrix4 model = Matrix4.Identity;
             Matrix4 view = camera.GetViewMatrix();
             Matrix4 projection = camera.GetProjectionMatrix();
 
@@ -791,16 +768,29 @@ namespace DevDeadly
             GL.BindVertexArray(VAOLamp);
             GL.UseProgram(lampShader.Handle2);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            GL.BindVertexArray(0);
+
+            inventory.Use();
+            inventory.SetInt("textureHUD", 10);
+            texturehud.Use(TextureUnit.Texture0);
+            GL.BindVertexArray(VAOInventory);
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
             // Render chunk with texture (no lighting)
             lightingShader.Use();
+            Matrix4 model = Matrix4.Identity;
             lightingShader.SetMatrix4("model", model);
             lightingShader.SetMatrix4("view", view);
             lightingShader.SetMatrix4("projection", projection);
-            
-                                                                  //L/F     /U/D    L/F
+
+            //L/F     /U/D    L/F
             //lampMatrix = Matrix4.CreateTranslation(new Vector3(-30.0f, -6.0f, -30.0f));
             //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
+            //chunk.Render(lightingShader); //Render always before modelLampLocation the mvp set. X-Ray mode
+            chunk.Render(lightingShader);
 
             int modelLocation = GL.GetUniformLocation(lightingShader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(lightingShader.Handle, "view");
@@ -823,24 +813,18 @@ namespace DevDeadly
             int projectionCloudLocation = GL.GetUniformLocation(cloudShader.Handle3, "projectioncloud");
 
             //GL.UniformMatrix4(modelCloudLocation, true, ref modelCloud);
-            //GL.UniformMatrix4(viewCloudLocation, true, ref viewCloud);
-            //GL.UniformMatrix4(projectionCloudLocation, true, ref projectionCloud);
-            chunk.Render(lightingShader); //Render always before modelLampLocation the mvp set.
+            GL.UniformMatrix4(viewCloudLocation, true, ref viewCloud);
+            GL.UniformMatrix4(projectionCloudLocation, true, ref projectionCloud);
 
             GL.UniformMatrix4(modelLampLocation, true, ref lampMatrix);
             GL.UniformMatrix4(viewLampLocation, true, ref view);
             GL.UniformMatrix4(projectionLampLocation, true, ref projection);
-
 
             // Enable Docking
             if (_showGui)
             {
                 //DockSpace made my background dark taking the whole rez of the screen.
                 //ImGui.DockSpaceOverViewport();
-                ImGui.Begin("Debug Info");
-                ImGui.Text($"TextureID: {TextureID}");
-                ImGui.Text("HUD debería estar activo");
-                ImGui.End();
                 ImGui.ShowDemoWindow();
                 ImGuiController.CheckGLError("End of frame");
             }
