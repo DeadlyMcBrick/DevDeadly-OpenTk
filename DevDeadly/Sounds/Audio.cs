@@ -5,34 +5,43 @@ using OpenTK.Audio.OpenAL;
 
 public class AudioPlayer : IDisposable
 {
+    private static ALDevice _device;
+    private static ALContext _context;
+    private static bool _initialized = false;
+
     private int _buffer;
     private int _source;
-    private ALDevice _device;
-    private ALContext _context;
 
     public AudioPlayer(string filePath)
     {
-        _device = ALC.OpenDevice(null);
-        if (_device == ALDevice.Null)
-            throw new Exception("Can't open the Audio Device.");
+        if (!_initialized)
+        {
+            _device = ALC.OpenDevice(null);
+            if (_device == ALDevice.Null)
+                throw new Exception("Can't open the Audio Device.");
 
-        _context = ALC.CreateContext(_device, new ALContextAttributes());
-        if (_context == ALContext.Null)
-            throw new Exception("Can't create the audio.");
+            _context = ALC.CreateContext(_device, new ALContextAttributes());
+            if (_context == ALContext.Null)
+                throw new Exception("Can't create the audio.");
 
-        ALC.MakeContextCurrent(_context);
+            ALC.MakeContextCurrent(_context);
+            _initialized = true;
+        }
 
         _buffer = AL.GenBuffer();
         _source = AL.GenSource();
+
 
         LoadWave(filePath, out byte[] soundData, out ALFormat format, out int freq);
 
         GCHandle handle = GCHandle.Alloc(soundData, GCHandleType.Pinned);
         try
+
         {
             IntPtr ptr = handle.AddrOfPinnedObject();
             AL.BufferData(_buffer, format, ptr, soundData.Length, freq);
         }
+
         finally
         {
             handle.Free();
@@ -46,14 +55,23 @@ public class AudioPlayer : IDisposable
         AL.SourcePlay(_source);
     }
 
+    public void SetVolumen(float Volume)
+    {
+        AL.Source(_source, ALSourcef.Gain, Volume);
+    }
+
     public void Dispose()
     {
         AL.SourceStop(_source);
         AL.DeleteSource(_source);
         AL.DeleteBuffer(_buffer);
+    }
+    public static void ShutdownAudio()
+    {
         ALC.MakeContextCurrent(ALContext.Null);
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
+        _initialized = false;
     }
 
     private void LoadWave(string filePath, out byte[] data, out ALFormat format, out int sampleRate)
@@ -93,11 +111,5 @@ public class AudioPlayer : IDisposable
             (2, 16) => ALFormat.Stereo16,
             _ => throw new NotSupportedException("WAV Format not supported idk.")
         };
-    }
-
-    //Being able to set the volume also implemented with the ImGUI.
-    public void SetVolume(float volume)
-    {
-        AL.Source(_source, ALSourcef.Gain, volume);
     }
 }

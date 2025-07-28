@@ -405,6 +405,8 @@ namespace DevDeadly
         private int shaderProgram;
         private int state;
 
+        public AudioPlayer Pop;
+
         Shader lightingShader;
         ShaderLamp lampShader;
         CloudShader cloudShader;
@@ -492,6 +494,7 @@ namespace DevDeadly
             if (input.IsKeyPressed(Keys.E))
             {
                 _hideInventory = !_hideInventory;
+                Pop.Play();
             }
 
             // !!TODO: Only it's being able to hide the cursor but not re activate it idk
@@ -521,15 +524,20 @@ namespace DevDeadly
 
             //Audio Inicialization
             AudioPlayer player = new AudioPlayer("Key.wav");
+            Pop = new AudioPlayer("bit.wav");
+
             player.Play();
-            Console.WriteLine("Reproduciendo sonido..." + player);
-            Thread.Sleep(3000);
+            //Console.WriteLine("Reproduciendo sonido..." + player);
+            //Thread.Sleep(3000);
+            //player.SetVolume(90f);
+
+            //Console.WriteLine($"Is popping out: {Pop}");
 
             float aspect = 50f / 256f;
-            float offsetX = 0.0f; 
+            float offsetX = -1.0f / 90f;
             float offsetY = -1.7f;
-            float hudWidth = 1.9f;
-            float hudHeight = 0.3f;
+            float hudWidth = 1.6f;
+            float hudHeight = 0.2f;
 
             float[] verticesHUD =
             {
@@ -565,7 +573,8 @@ namespace DevDeadly
             //Reminder to apply this as a way to optimizate that shit loading specific faces.
             //GL.FrontFace(FrontFaceDirection.Cw);
             //GL.Enable(EnableCap.CullFace);
-            //GL.CullFace(CullFaceMode.Back); 
+            //GL.CullFace(CullFaceMode.Back);
+            //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
             CursorState = CursorState.Grabbed;
 
             //String Path, Textures configuration and Lighting settings.
@@ -574,7 +583,7 @@ namespace DevDeadly
             cloudShader = new CloudShader(CloudVerts, CloudFrags);
             inventory = new Inventory(InventoryVerts, InventoryFrags);
 
-            string imagePath = "Transparency.png";
+            string imagePath = "Asset.png"; 
             texturehud = new TextureHUD(imagePath);
             texturehud.Use(TextureUnit.Texture10);
 
@@ -671,7 +680,7 @@ namespace DevDeadly
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
             //Background Color
@@ -770,27 +779,18 @@ namespace DevDeadly
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.BindVertexArray(0);
 
-            inventory.Use();
-            inventory.SetInt("textureHUD", 10);
-            texturehud.Use(TextureUnit.Texture0);
-            GL.BindVertexArray(VAOInventory);
-
-            GL.Enable(EnableCap.DepthTest);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-            GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-
             // Render chunk with texture (no lighting)
             lightingShader.Use();
             Matrix4 model = Matrix4.Identity;
             lightingShader.SetMatrix4("model", model);
             lightingShader.SetMatrix4("view", view);
             lightingShader.SetMatrix4("projection", projection);
+            chunk.Render(lightingShader);
 
             //L/F     /U/D    L/F
             //lampMatrix = Matrix4.CreateTranslation(new Vector3(-30.0f, -6.0f, -30.0f));
             //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
             //chunk.Render(lightingShader); //Render always before modelLampLocation the mvp set. X-Ray mode
-            chunk.Render(lightingShader);
 
             int modelLocation = GL.GetUniformLocation(lightingShader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(lightingShader.Handle, "view");
@@ -800,6 +800,22 @@ namespace DevDeadly
             GL.UniformMatrix4(viewLocation, true, ref view);
             GL.UniformMatrix4(projectionLocation, true, ref projection);
 
+            GL.Disable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            if (_hideInventory)
+            {
+                inventory.Use();
+                inventory.SetInt("textureHUD", 0);
+                texturehud.Use(TextureUnit.Texture0);
+                GL.BindVertexArray(VAOInventory);
+
+                GL.Enable(EnableCap.DepthTest);
+                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+                GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+            }
+           
             int modelLampLocation = GL.GetUniformLocation(lampShader.Handle2, "model");
             int viewLampLocation = GL.GetUniformLocation(lampShader.Handle2, "view");
             int projectionLampLocation = GL.GetUniformLocation(lampShader.Handle2, "projection");
@@ -819,6 +835,7 @@ namespace DevDeadly
             GL.UniformMatrix4(modelLampLocation, true, ref lampMatrix);
             GL.UniformMatrix4(viewLampLocation, true, ref view);
             GL.UniformMatrix4(projectionLampLocation, true, ref projection);
+
 
             // Enable Docking
             if (_showGui)
