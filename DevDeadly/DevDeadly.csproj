@@ -10,13 +10,6 @@
 
   <ItemGroup>
     <None Remove="Images\InventorySlots.png" />
-    <None Remove="Images\Slots.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Images\Slots.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
   </ItemGroup>
 
   <ItemGroup>
