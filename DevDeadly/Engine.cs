@@ -7,6 +7,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Diagnostics;
+using System.Reflection;
 using Vector3 = OpenTK.Mathematics.Vector3;
 
 namespace DevDeadly
@@ -42,7 +43,6 @@ namespace DevDeadly
             layout(location = 3) in vec3 aNormal;   
 
             out vec2 texCoord;
-            out vec3 FragPos;
             out vec3 Normal;
 
             uniform mat4 model;
@@ -51,70 +51,27 @@ namespace DevDeadly
 
             void main()
             {
-                FragPos = vec3(model * vec4(aPosition, 1.0));
-                Normal = mat3(transpose(inverse(model))) * aNormal;  
-                gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
-                texCoord = aTexCoord;
+               gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
+               texCoord = aTexCoord;
             }";
 
         //Fragment
         string fragmentShaderSource = @"
 
             #version 330 core
-
             in vec2 texCoord;
-            in vec3 FragPos;
-            in vec3 Normal;
-
             out vec4 FragColor;
-
-            uniform sampler2D tex;
-            uniform vec3 lightPos;
-            uniform vec3 viewPos;
-            uniform vec3 lightColor;
-            uniform vec3 objectColor;
-
-            uniform sampler2D texture0;
-            uniform sampler2D texture1;
+            uniform sampler2D atlas; 
 
             void main()
             {
-                vec3 texColor = texture(tex, texCoord).rgb;
-
-                // Ambient
-                float ambientStrength = 0.1f;
-                vec3 ambient = ambientStrength * lightColor;
-
-                // Diffuse
-                vec3 norm = normalize(Normal);
-                vec3 lightDir = normalize(lightPos - FragPos);
-                float diff = max(dot(norm, lightDir), 0.0f);
-                vec3 diffuse = diff * lightColor;
-
-                // Specular
-                float specularStrength = 0.50f;
-                vec3 viewDir = normalize(viewPos - FragPos);
-                vec3 reflectDir = reflect(-lightDir, norm);
-                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
-                vec3 specular = specularStrength * spec * lightColor;
-
-                // Final color
-                vec3 result = (ambient + diffuse + specular);
-                FragColor = vec4(result, 1.0f);
-
-                vec4 color1 = texture(texture0, texCoord);
-                vec4 color2 = texture(texture1, texCoord);
-                FragColor = mix(color1, color2, 0.4);
+                FragColor = texture(atlas, texCoord);  
             }";
 
         string LampVert = @"
 
             #version 330 core
             layout(location = 0) in vec3 aPos;
-            layout(location = 1) in vec3 aNormal;
-
-            out vec3 FragPos;
-            out vec3 Normal;
 
             uniform mat4 model;
             uniform mat4 view;
@@ -122,8 +79,6 @@ namespace DevDeadly
 
             void main()
             {
-                FragPos = vec3(model * vec4(aPos, 1.0));
-                Normal = mat3(transpose(inverse(model))) * aNormal;  
                 gl_Position = vec4(aPos, 1.0) * model * view * projection;
             }";
 
@@ -131,100 +86,153 @@ namespace DevDeadly
 
             #version 330 core
 
-            in vec3 FragPos;
-            in vec3 Normal;
-
             out vec4 FragColor;
 
-            uniform vec3 lightPos;
-            uniform vec3 viewPos;
             uniform vec3 lightColor;
             uniform vec3 objectColor;
 
             void main()
             {
-                // Ambient
-                float ambientStrength = 0.1f;
-                vec3 ambient = ambientStrength * lightColor;
-
-                // Diffuse
-                vec3 norm = normalize(Normal);
-                vec3 lightDir = normalize(lightPos - FragPos);
-                float diff = max(dot(norm, lightDir), 0.0f);
-                vec3 diffuse = diff * lightColor;
-
-                // Specular
-                float specularStrength = 0.50f;
-                vec3 viewDir = normalize(viewPos - FragPos);
-                vec3 reflectDir = reflect(-lightDir, norm);
-                float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 256);
-                vec3 specular = specularStrength * spec * lightColor;
-
-                // Final color
-                vec3 result = (ambient + diffuse + specular) * objectColor;
-                FragColor = vec4(result, 1.0f);
+                FragColor = vec4(lightColor, 1.0f);
             }";
 
         string CloudVerts = @"
 
-        #version 330 core
-        layout(location = 0) in vec3 Cloud;
-        layout(location = 1) in vec2 aTexCoordCloud;
+            #version 330 core
+            layout(location = 0) in vec3 Cloud;
+            layout(location = 1) in vec2 aTexCoordCloud;
 
-        uniform mat4 modelcloud;
-        uniform mat4 viewcloud;
-        uniform mat4 projectioncloud;
+            uniform mat4 modelcloud;
+            uniform mat4 viewcloud;
+            uniform mat4 projectioncloud;
 
-        out vec2 TexCoord;
+            out vec2 TexCoord;
 
-        void main()
-        {
-            gl_Position = vec4(Cloud, 1.0) * modelcloud * viewcloud * projectioncloud;
-            TexCoord = aTexCoordCloud;
-        }";
+            void main()
+            {
+                gl_Position = vec4(Cloud, 1.0) * modelcloud * viewcloud * projectioncloud;
+                TexCoord = aTexCoordCloud;
+            }";
 
         string CloudFrags = @"
         
-        #version 330 core
+            #version 330 core
 
-        in vec2 TexCoord;
-        out vec4 FragColor;
+            in vec2 TexCoord;
+            out vec4 FragColor;
 
-        void main()
-        {
-            FragColor = vec4(0.95, 0.95, 1.0, 0.4);       
-        }";
+            void main()
+            {
+                FragColor = vec4(0.95, 0.95, 1.0, 0.4);       
+            }";
 
         string InventoryVerts = @"
         
-        #version 330 core
+            #version 330 core
 
-        layout (location = 0) in vec2 IUPosition;
-        layout (location = 1) in vec2 IUCoord;
+            layout (location = 0) in vec2 IUPosition;
+            layout (location = 1) in vec2 IUCoord;
 
-        out vec2 TexCoord;
+            out vec2 TexCoord;
 
-        uniform mat4 projection; 
+            uniform mat4 projection; 
 
-        void main()
-        {
-            gl_Position = vec4 (IUPosition, 0.0, 2.0);
-            TexCoord = IUCoord;
-        }";
+            void main()
+            {
+                gl_Position = vec4 (IUPosition, 0.0, 2.0);
+                TexCoord = IUCoord;
+            }";
 
         string InventoryFrags = @"
         
-        #version 330 core
+            #version 330 core
 
-        in vec2 TexCoord;
-        out vec4 FragColor;
+            in vec2 TexCoord;
+            out vec4 FragColor;
 
-        uniform sampler2D textureHUD;
+            uniform sampler2D textureHUD;
 
-        void main()
-        {            
-            FragColor = texture(textureHUD, TexCoord);
-        }";
+            void main()
+            {            
+                FragColor = texture(textureHUD, TexCoord);
+            }";
+
+        string CreationVerts = @"
+
+            #version 330 core
+
+            layout (location = 0) in vec2 Crosition;
+            layout (location = 1) in vec2 aCroods;
+
+            out vec2 TexCoord;
+
+            uniform mat4 projection; 
+
+            void main()
+            {
+                gl_Position = vec4 (Crosition, 0.0, 1.0);
+                TexCoord = aCroods;
+            }";
+
+        string CreationFrags = @"
+
+            #version 330 core
+
+            in vec2 TexCoord;
+            out vec4 FragColor;
+
+            uniform sampler2D TextureCreate;
+
+            void main()
+            {            
+                FragColor = texture(TextureCreate, TexCoord);
+            }";
+
+        string TransparencyVerts = @"
+
+            #version 330 core
+            layout (location = 0) in vec2 aPos;
+
+            void main()
+            {
+                gl_Position = vec4 (aPos, 0.0, 2.0);
+            }";
+
+        string TransparencyFrags = @"
+
+            #version 330 core
+            out vec4 FragColor;
+
+            void main()
+            {
+                FragColor = vec4(0.2, 0.2, 0.2, 0.6);
+            }";
+
+        string ObjectVert = @"
+
+            #version 330 core
+
+            layout (location = 0) in vec3 aPos;
+
+            uniform mat4 model;
+            uniform mat4 view;
+            uniform mat4 projection;
+
+            void main()
+            {
+                gl_Position = vec4(aPos, 1.0) * model * view * projection;
+            }";
+
+        string ObjectFrag = @"
+       
+            #version 330 core
+
+            out vec4 FragColor;
+
+            void main()
+            {
+                FragColor = vec4(1.0, 0.4, 0.2, 1.0); // Color naranja
+            }";
 
         //Build
         float[] lampVertices = {
@@ -274,6 +282,7 @@ namespace DevDeadly
         };
 
         float[] CloudsVertices =
+        
         {
             -0.5f, -0.5f, 0.0f,   0.0f, 0.0f,
             -0.5f,  0.5f, 0.0f,   0.0f, 1.0f,
@@ -283,16 +292,20 @@ namespace DevDeadly
              0.5f,  0.5f, 0.0f,   1.0f, 1.0f,
              0.5f, -0.5f, 0.0f,   1.0f, 0.0f
         };
-        uint[] cloudsindices = {
+
+        uint[] indicesCreate = 
+        
+        {
             0, 1, 2,
             2, 3, 0
         };
 
         uint[] indicesHUD =
+
         {
-                0, 1, 2,
-                2, 3, 0
-            };
+            0, 1, 2,
+            2, 3, 0
+        };
 
 
         List<Vector3> cloudPositions = new List<Vector3>()
@@ -373,10 +386,27 @@ namespace DevDeadly
             new Vector3(31.0f, 24.0f, -3.0f)
         };
 
+        float[] backgroundVertices = 
+        
+        {
+            // posX, posY
+            -0.8f, -0.6f, // Bottom left
+             0.8f, -0.6f, // Bottom right
+             0.8f,  0.6f, // Top right
+            -0.8f,  0.6f  // Top left
+        };
+
+        uint[] backgroundIndices = {
+            0, 1, 2,
+            2, 3, 0
+        };
+
+
         //GUI
         ImGuiController _controller;
         private bool _showGui = true;
         private bool _hideInventory = true;
+        private bool _hideCreate = true;
 
         // VAO,EBO,VBO (TEXTURE SET)
         private int VertexArrayObject;
@@ -396,9 +426,22 @@ namespace DevDeadly
         private int VAOInventory;
         private int EBOInventory;
 
+        //VAO, EBO (TRANSPARENCY)
+        private int VAOTransparency;
+        private int VBOTransparency;
+        private int EBOTransparency;
+
+        //VAO, EBO (CREATIVE HUD SET);
+        private int VAOCreate;
+        private int EBOCreate;
+
         public int nrAttribute;
         public int width, height;
         public bool OptionCursorState;
+
+        public int VAOItem;
+        public int VBOItem;
+        public int EBOItem;
 
         //SHADER SET
         private Stopwatch timer = Stopwatch.StartNew();
@@ -411,6 +454,12 @@ namespace DevDeadly
         ShaderLamp lampShader;
         CloudShader cloudShader;
         Inventory inventory;
+        Creation create;
+        Rency rency;
+        ItemObject itemObject;
+
+        private World world;
+        private Model modelItem;
 
         private readonly Vector3 lightPos = new Vector3(1.2f, 1.0f, 2.0f);
 
@@ -418,11 +467,12 @@ namespace DevDeadly
         public Matrix4 projection;
         //public Texture texture;
         //public Texture texture2;
+        public TextureCreate createhud;
         public TextureHUD texturehud;
+        public Texture itemhud;
         public Matrix4 model;
         public Matrix4 view;
         public static int TextureID;
-
 
         Camera camera;
         Chunk chunk;
@@ -480,20 +530,21 @@ namespace DevDeadly
 
             MouseState mouse = MouseState;
             camera.Update(input, mouse, e);
+            world.GenerateInitialChunks(camera.position);
 
             //Keybinds to detect if this is actually is being pressed...
-            if (KeyboardState.IsKeyDown(Keys.W));
-            if (KeyboardState.IsKeyDown(Keys.A));
-            if (KeyboardState.IsKeyDown(Keys.S));
-            if (KeyboardState.IsKeyDown(Keys.D));
+            if (KeyboardState.IsKeyDown(Keys.W)) ;
+            if (KeyboardState.IsKeyDown(Keys.A)) ;
+            if (KeyboardState.IsKeyDown(Keys.S)) ;
+            if (KeyboardState.IsKeyDown(Keys.D)) ;
             if (input.IsKeyPressed(OpenTK.Windowing.GraphicsLibraryFramework.Keys.G))
             {
                 _showGui = !_showGui;
             }
 
-            if (input.IsKeyPressed(Keys.E))
+            if(input.IsKeyPressed(Keys.Q))
             {
-                _hideInventory = !_hideInventory;
+                _hideCreate = !_hideCreate;
                 Pop.Play();
             }
 
@@ -516,6 +567,23 @@ namespace DevDeadly
             {
                 Close();
             }
+
+            if (mouse.IsButtonDown(MouseButton.Left))
+            {
+                var hit = world.RaycastBlock(camera.position, camera.front);
+                if (hit.HasValue)
+                {
+                    var (chunk, pos) = hit.Value;
+
+                    chunk.chunkBlocks[pos.X, pos.Y, pos.Z].type = BlockType.EMPTY;
+                    chunk.Rebuild();
+                }
+            }
+
+            //if (mouse.IsButtonPressed(MouseButton.Right))
+            //{
+            //    world.TryPlaceBlock(camera);
+            //}
         }
 
         protected override void OnLoad()
@@ -524,82 +592,123 @@ namespace DevDeadly
 
             //Audio Inicialization
             AudioPlayer player = new AudioPlayer("Key.wav");
-            Pop = new AudioPlayer("bit.wav");
+            Pop = new AudioPlayer("Inventory.wav");
 
             player.Play();
-            //Console.WriteLine("Reproduciendo sonido..." + player);
+            Console.WriteLine($"Playing sound...{player}");
+            Console.WriteLine($"Playing sound...{Pop}");
+
             //Thread.Sleep(3000);
             //player.SetVolume(90f);
 
-            //Console.WriteLine($"Is popping out: {Pop}");
+            modelItem = new Model("C:\\Users\\Camil\\Source\\Repos\\DevDeadly-OpenTk\\DevDeadly\\Models\\Items Opentk.obj");
 
-            float aspect = 50f / 256f;
             float offsetX = -1.0f / 90f;
             float offsetY = -1.7f;
-            float hudWidth = 1.6f;
+            float SlotWidth = 1.6f;
             float hudHeight = 0.2f;
 
             float[] verticesHUD =
             {
-                -hudWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
-                 hudWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f, 
-                 hudWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f, 
-                -hudWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
+                -SlotWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
+                 SlotWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f,
+                 SlotWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f,
+                -SlotWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
             };
-          
+
+            float[] backgroundVertices =
+
+            {
+                -(SlotWidth * 0.90f) / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
+                 (SlotWidth * 0.90f) / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f,
+                 (SlotWidth * 0.90f) / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f,
+                -(SlotWidth * 0.90f) / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
+            };
+
+            float offsetX2 = 0.0f;       
+            float offsetY2 = 0.2f;      
+            float CreateWidth = 1.2f;   
+            float CreateHeight = 1.6f;
+
+            float[] createHUD =
+
+            {
+                -CreateWidth / 2 + offsetX2, -CreateHeight / 2 + offsetY2, 0f, 1f,
+                 CreateWidth / 2 + offsetX2, -CreateHeight / 2 + offsetY2, 1f, 1f,
+                 CreateWidth / 2 + offsetX2,  CreateHeight / 2 + offsetY2, 1f, 0f,
+                -CreateWidth / 2 + offsetX2,  CreateHeight / 2 + offsetY2, 0f, 0f,
+            };
+
             //Chunk inicializated
             chunk = new Chunk(new Vector3(0, 0, 0));
             Title += ": OpenTk Version:" + GL.GetString(StringName.Version);
 
-            //Controller inicializated
+            world = new World();
+            if (world == null)
+            {
+                Console.WriteLine("world is null");
+            }
+
+            else
+            {
+                world.RenderAll(lightingShader);
+            }
+
+            //Controller Inicializated
             _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
             camera = new Camera(100f, 100f, new Vector3(0, 0, 0)); //This is probably the stuff I have to fix.
+            //Vector3 playerPos = camera.position;
+            //camera = new Camera(Size.X, Size.Y, Vector3.UnitZ * 3);
+            //camera = new Camera(Size.X, Size.Y, new Vector3(25, 25, 25));
 
+
+            //Timer Inicializated.
             timer = Stopwatch.StartNew();
-            camera.SetObstacles(chunk.SolidBlockAABBs);
-
-            VertexArrayObject = GL.GenVertexArray();
-            VertexBufferObject = GL.GenBuffer();
-            ElementBufferObject = GL.GenBuffer();
-
-            VAOModel = GL.GenVertexArray();
-            VAOLamp = GL.GenVertexArray();
-            EBOLamp = GL.GenBuffer();
-
-            GL.Enable(EnableCap.DepthTest);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-            GL.Enable(EnableCap.Blend);
+            //camera.SetObstacles(chunk.SolidBlockAABBs);
+            camera.SetObstacles(world.GetAllObstacles());
 
             //Reminder to apply this as a way to optimizate that shit loading specific faces.
             //GL.FrontFace(FrontFaceDirection.Cw);
             //GL.Enable(EnableCap.CullFace);
             //GL.CullFace(CullFaceMode.Back);
+            //GL.CullFace(CullFaceMode.Front);
             //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
             CursorState = CursorState.Grabbed;
 
-            //String Path, Textures configuration and Lighting settings.
+            //String path shader routes
             lightingShader = new Shader(vertexShaderSource, fragmentShaderSource);
             lampShader = new ShaderLamp(LampVert, LampFrags);
             cloudShader = new CloudShader(CloudVerts, CloudFrags);
             inventory = new Inventory(InventoryVerts, InventoryFrags);
+            create = new Creation(CreationVerts, CreationFrags);
+            rency = new Rency(TransparencyVerts, TransparencyFrags);
+            itemObject = new ItemObject(ObjectVert,ObjectFrag);
+            
 
-            string imagePath = "Asset.png"; 
+            var imagePath = "Asset.png";
             texturehud = new TextureHUD(imagePath);
-            texturehud.Use(TextureUnit.Texture10);
+            texturehud.Use(TextureUnit.Texture10);  
+
+            var imagePath2 = "spritefond.png";
+            createhud = new TextureCreate(imagePath2);
+            createhud.Use(TextureUnit.Texture11);
+
+            /*DRAWING 
+            ----------------------------------------------------------------------------------------------------------------------------------------------*/
+            ////in case i want to change it to the lamp shit, i have to replace it as anormal and don't forget to change the vert/frag and add the lightingsource
 
             //LAMP
             VAOLamp = GL.GenVertexArray();
-            int VBOLamp = GL.GenBuffer();
+            VBOLamp = GL.GenBuffer();
 
             GL.BindVertexArray(VAOLamp);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLamp);
             GL.BufferData(BufferTarget.ArrayBuffer, lampVertices.Length * sizeof(float), lampVertices, BufferUsageHint.StaticDraw);
 
-            //LIGHT
             int lampPosLocation = lampShader.GetAttribLocation("aPosition");
             GL.EnableVertexAttribArray(lampPosLocation);
             GL.VertexAttribPointer(lampPosLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
-            
+
             int posAttrib = lampShader.GetAttribLocation("aPos");
             GL.EnableVertexAttribArray(posAttrib);
             GL.VertexAttribPointer(posAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
@@ -607,36 +716,10 @@ namespace DevDeadly
             int Anormal = lampShader.GetAttribLocation("aNormal");
             GL.EnableVertexAttribArray(Anormal);
             GL.VertexAttribPointer(Anormal, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
-
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            ////CLOUD
-            //VAOCloud = GL.GenVertexArray();
-            //int VBOCloud = GL.GenBuffer();
-
-            //GL.BindVertexArray(VAOCloud);
-            //GL.BindBuffer(BufferTarget.ArrayBuffer, VBOCloud);
-            //GL.BufferData(BufferTarget.ArrayBuffer, CloudsVertices.Length * sizeof(float), CloudsVertices, BufferUsageHint.StaticDraw);
-
-            VAOInventory = GL.GenVertexArray();
-            int VBOInventory = GL.GenBuffer();
-            int EBOInventory = GL.GenBuffer();
-
-            GL.BindVertexArray(VAOInventory);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOInventory);
-            GL.BufferData(BufferTarget.ArrayBuffer, verticesHUD.Length * sizeof(float), verticesHUD, BufferUsageHint.StaticDraw);
-
-            //GL.BindVertexArray(EBOInventory);
-            //GL.BindBuffer(BufferTarget.ArrayBuffer, EBOInventory);
-            GL.BufferData(BufferTarget.ArrayBuffer, indicesHUD.Length * sizeof(float), indicesHUD, BufferUsageHint.StaticDraw);
-            GL.BindVertexArray(0);
-
-            /*DRAWING 
-            ----------------------------------------------------------------------------------------------------------------------------------------------*/
-            ////in case i want to change it to the lamp shit, i have to replace it as anormal and don't forget to change the vert/frag and add the lightingsource
-
-            //CLOUD
+            //  CLOUD
             VAOCloud = GL.GenVertexArray();
             int VBOCloud = GL.GenBuffer();
 
@@ -644,7 +727,6 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOCloud);
             GL.BufferData(BufferTarget.ArrayBuffer, CloudsVertices.Length * sizeof(float), CloudsVertices, BufferUsageHint.StaticDraw);
 
-            //----------------------------------------------------------------------------------------------------------------------------------------------*/
             int posCloud = cloudShader.GetAttribLocation("Cloud");
             GL.VertexAttribPointer(posCloud, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
             GL.EnableVertexAttribArray(posCloud);
@@ -654,8 +736,10 @@ namespace DevDeadly
             GL.EnableVertexAttribArray(posCoord);
             GL.BindVertexArray(0);
 
+            // INVENTORY
+            int VBOInventory = GL.GenBuffer();
             VAOInventory = GL.GenVertexArray();
-            EBOInventory = GL.GenBuffer();             
+            EBOInventory = GL.GenBuffer();
 
             GL.BindVertexArray(VAOInventory);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOInventory);
@@ -671,6 +755,78 @@ namespace DevDeadly
             int posIUCoord = inventory.GetAttribLocation("IUCoord");
             GL.VertexAttribPointer(posIUCoord, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
             GL.EnableVertexAttribArray(posIUCoord);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindVertexArray(0);
+
+            VAOTransparency = GL.GenVertexArray();
+            VBOTransparency = GL.GenBuffer();
+            EBOTransparency = GL.GenBuffer();
+
+            GL.BindVertexArray(VAOTransparency);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOTransparency);
+            GL.BufferData(BufferTarget.ArrayBuffer, backgroundVertices.Length * sizeof(float), backgroundVertices, BufferUsageHint.StaticDraw);
+
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOTransparency);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, backgroundIndices.Length * sizeof(uint), backgroundIndices, BufferUsageHint.StaticDraw);
+
+            int posTransparency = rency.GetAttribLocation("aPos");
+            GL.VertexAttribPointer(posTransparency, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(posTransparency);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindVertexArray(0);
+
+            //CREATE
+            int VBOCreate = GL.GenBuffer();
+            VAOCreate = GL.GenVertexArray();
+            EBOCreate = GL.GenBuffer();
+
+            GL.BindVertexArray(VAOCreate);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOCreate);
+            GL.BufferData(BufferTarget.ArrayBuffer, createHUD.Length * sizeof(float), createHUD, BufferUsageHint.StaticDraw);
+
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOCreate);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indicesCreate.Length * sizeof(uint), indicesCreate, BufferUsageHint.StaticDraw);
+
+            int CreatePosition = create.GetAttribLocation("Crosition");
+            GL.VertexAttribPointer(CreatePosition, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(CreatePosition);
+
+            int CreateCroods = create.GetAttribLocation("aCroods");
+            GL.VertexAttribPointer(CreateCroods, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
+            GL.EnableVertexAttribArray(CreateCroods);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindVertexArray(0);
+
+            VAOItem = GL.GenVertexArray();
+            VBOItem = GL.GenBuffer();
+            EBOItem = GL.GenBuffer();
+
+            GL.BindVertexArray(VAOItem);
+
+            //// Vertex buffer
+            //GL.BindBuffer(BufferTarget.ArrayBuffer, VBOItem);
+            //GL.BufferData(BufferTarget.ArrayBuffer, vertexData.Length * sizeof(float), vertexData, BufferUsageHint.StaticDraw);
+
+            //// Element buffer
+            //GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOItem);
+            //GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Count * sizeof(uint), Indices.ToArray(), BufferUsageHint.StaticDraw);
+
+            // Atributo: posición (location = 0)
+            GL.EnableVertexAttribArray(0);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride: 0 * sizeof(float), 0);
+
+            // Atributo: normales (location = 1)
+
+            // Atributo: UV (location = 2)
+            GL.EnableVertexAttribArray(2);
+            GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, stride:0 * sizeof(float), 6 * sizeof(float));
+            GL.BindVertexArray(0);
+
+            int ObjectPosition = itemObject.GetAttribLocation("aPos");
+            GL.VertexAttribPointer(ObjectPosition, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
+            GL.EnableVertexAttribArray(ObjectPosition);
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
@@ -733,24 +889,6 @@ namespace DevDeadly
                 GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
             }
 
-            //cloudShader.Use();
-            //cloudShader.SetMatrix4("modelcloud", modelCloud);
-            //cloudShader.SetMatrix4("viewcloud", viewCloud);
-            //cloudShader.SetMatrix4("projectioncloud", projectionCloud);
-
-            //Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(0, ClientSize.X, ClientSize.Y, 0, -1.0f, 1.0f);
-            //GL.Disable(EnableCap.DepthTest);
-
-            //Set for IU interface
-            //inventory.Use();
-            //inventory.SetInt("textureHUD", 10);
-            //texturehud.Use(TextureUnit.Texture0);
-            //GL.BindVertexArray(VAOInventory);
-
-            //GL.Enable(EnableCap.DepthTest);
-            //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-            //GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-
             //Cube Model and rotation
             //Matrix4 model = Matrix4.Identity;
             Matrix4 view = camera.GetViewMatrix();
@@ -759,20 +897,18 @@ namespace DevDeadly
             //lampModel = Matrix4.CreateRotationZ(yRot) * Matrix4.CreateTranslation(10f, 0f, -5f);
             //yRot += 0.00f;
 
-            //model = Matrix4.CreateRotationZ(yRot) * Matrix4.CreateTranslation(10f, 0f, -5f);
-            //yRot += 0.001f;
-
-            Matrix4 lampMatrix = Matrix4.Identity;
+            //Matrix4 lampMatrix = Matrix4.Identity;
+            Matrix4 lampMatrix = Matrix4.CreateTranslation(0f, 60f, 0f) + Matrix4.CreateScale(7f);
 
             //Render cube with lighting
             lampShader.Use();
             lampShader.SetMatrix4("model", lampMatrix);
             lampShader.SetMatrix4("view", camera.GetViewMatrix());
             lampShader.SetMatrix4("projection", camera.GetProjectionMatrix());
-            lampShader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f));
-            lampShader.SetVector3("lightColor", new Vector3(1.0f, 1.0f, 1.0f));
-            lampShader.SetVector3("viewPos", camera.position);
-            lampShader.SetVector3("lightPos", lightPos);
+            //lampShader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f));
+            lampShader.SetVector3("lightColor", new Vector3(5.0f, 5.0f, 0.0f));
+            //lampShader.SetVector3("viewPos", camera.position);
+            //lampShader.SetVector3("lightPos", lightPos);
 
             GL.BindVertexArray(VAOLamp);
             GL.UseProgram(lampShader.Handle2);
@@ -785,12 +921,8 @@ namespace DevDeadly
             lightingShader.SetMatrix4("model", model);
             lightingShader.SetMatrix4("view", view);
             lightingShader.SetMatrix4("projection", projection);
-            chunk.Render(lightingShader);
-
-            //L/F     /U/D    L/F
-            //lampMatrix = Matrix4.CreateTranslation(new Vector3(-30.0f, -6.0f, -30.0f));
-            //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
-            //chunk.Render(lightingShader); //Render always before modelLampLocation the mvp set. X-Ray mode
+            //chunk.Render(lightingShader);
+            world.RenderAll(lightingShader);
 
             int modelLocation = GL.GetUniformLocation(lightingShader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(lightingShader.Handle, "view");
@@ -804,18 +936,53 @@ namespace DevDeadly
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            if (_hideInventory)
+            if (_hideCreate)
             {
-                inventory.Use();
-                inventory.SetInt("textureHUD", 0);
-                texturehud.Use(TextureUnit.Texture0);
-                GL.BindVertexArray(VAOInventory);
+                create.Use();
+                create.SetInt("TextureCreate", 11);
+                createhud.Use(TextureUnit.Texture11);
+                GL.BindVertexArray(VAOCreate);
 
                 GL.Enable(EnableCap.DepthTest);
                 GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
                 GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
             }
-           
+
+            rency.Use();
+            GL.BindVertexArray(VAOTransparency);
+
+            GL.Disable(EnableCap.DepthTest);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+            GL.BindVertexArray(0);
+
+            inventory.Use();
+            inventory.SetInt("textureHUD", 0);
+            texturehud.Use(TextureUnit.Texture0);
+            GL.BindVertexArray(VAOInventory);
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+
+            Matrix4 modelItem = Matrix4.Identity;
+            Matrix4 viewItem = camera.GetViewMatrix();
+            Matrix4 projectionItem = camera.GetProjectionMatrix();
+
+            itemObject.Use();
+            itemObject.SetMatrix4("model",modelItem);
+            itemObject.SetMatrix4("view", camera.GetViewMatrix());
+            itemObject.SetMatrix4("projection", camera.GetProjectionMatrix());
+
+            GL.BindVertexArray(VAOItem);
+            GL.UseProgram(itemObject.HandleItem);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            GL.BindVertexArray(0);
+
+            int modelItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "model");
+            int viewItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "view");
+            int projectionItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "projection");
+
             int modelLampLocation = GL.GetUniformLocation(lampShader.Handle2, "model");
             int viewLampLocation = GL.GetUniformLocation(lampShader.Handle2, "view");
             int projectionLampLocation = GL.GetUniformLocation(lampShader.Handle2, "projection");
@@ -836,12 +1003,14 @@ namespace DevDeadly
             GL.UniformMatrix4(viewLampLocation, true, ref view);
             GL.UniformMatrix4(projectionLampLocation, true, ref projection);
 
-
             // Enable Docking
             if (_showGui)
             {
                 //DockSpace made my background dark taking the whole rez of the screen.
                 //ImGui.DockSpaceOverViewport();
+                ImGui.Begin("Debugger");
+                ImGui.Button("Button Debug");
+                ImGui.End();
                 ImGui.ShowDemoWindow();
                 ImGuiController.CheckGLError("End of frame");
             }
@@ -879,7 +1048,6 @@ namespace DevDeadly
             GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
             // Tell ImGui of the new size
             _controller.WindowResized(ClientSize.X, ClientSize.Y);
-
         }
     }
 }

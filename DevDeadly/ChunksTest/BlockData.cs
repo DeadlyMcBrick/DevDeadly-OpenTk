@@ -16,6 +16,7 @@ namespace DevDeadly
         DIRT,
         GRASS,
         EMPTY,
+        LAVA,
     }
 
     public enum Faces

@@ -112,7 +112,57 @@ namespace DevDeadly.ChunksTest
                      new Vector2 (3f/16f, 15f/16f),
                      new Vector2 (4f/16f, 15f/16f),
                 }},
-            }}
-        };
-    }
-}
+            }},
+
+          {BlockType.LAVA, new Dictionary<Faces, List<Vector2>>()
+{
+                    {Faces.FRONT, new List<Vector2>()
+                    {
+                         new Vector2 (15f/16f, 1f/16f),   
+                         new Vector2 (1f, 1f/16f),         
+                         new Vector2 (1f, 0f),          
+                         new Vector2 (15f/16f, 0f),       
+                    }},
+
+                    {Faces.BACK, new List<Vector2>()
+                    {
+                         new Vector2 (15f/16f, 1f/16f),
+                         new Vector2 (1f, 1f/16f),
+                         new Vector2 (1f, 0f),
+                         new Vector2 (15f/16f, 0f),
+                    }},
+
+                    {Faces.LEFT, new List<Vector2>()
+                    {
+                         new Vector2 (15f/16f, 1f/16f),
+                         new Vector2 (1f, 1f/16f),
+                         new Vector2 (1f, 0f),
+                         new Vector2 (15f/16f, 0f),
+                    }},
+
+                    {Faces.RIGHT, new List<Vector2>()
+                    {
+                         new Vector2 (15f/16f, 1f/16f),
+                         new Vector2 (1f, 1f/16f),
+                         new Vector2 (1f, 0f),
+                         new Vector2 (15f/16f, 0f),
+                    }},
+
+                    {Faces.TOP, new List<Vector2>()
+                    {
+                         new Vector2 (15f/16f, 1f/16f),
+                         new Vector2 (1f, 1f/16f),
+                         new Vector2 (1f, 0f),
+                         new Vector2 (15f/16f, 0f),
+                    }},
+
+                    {Faces.BOTTOM, new List<Vector2>()
+                    {
+                         new Vector2 (15f/16f, 1f/16f),
+                         new Vector2 (1f, 1f/16f),
+                         new Vector2 (1f, 0f),
+                         new Vector2 (15f/16f, 0f),
+                    }},
+                }}
+             };
+          }}

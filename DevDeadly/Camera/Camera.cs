@@ -16,7 +16,7 @@ namespace DevDeadly
 
         public Vector3 position;
         private Vector3 up = Vector3.UnitY;
-        private Vector3 front = -Vector3.UnitZ;
+        public Vector3 front = -Vector3.UnitZ;
         private Vector3 right = Vector3.UnitX;
 
         private float pitch;
@@ -32,7 +32,6 @@ namespace DevDeadly
             SCREENWIDTH = width;
             SCREENHEIGHT = height;
             this.position = position;
-            this.obstacles = obstacles;
         }
 
         public Matrix4 GetViewMatrix()

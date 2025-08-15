@@ -10,7 +10,7 @@ using DevDeadly.Shaders;
 
 namespace DevDeadly
 {
-    internal class Chunk
+    public class Chunk
     {
         private List<Vector3> chunkVerts;
         private List<Vector2> chunkUVs;
@@ -19,8 +19,8 @@ namespace DevDeadly
         private int VAO;
         //Don't set the value with more than 200, otherwise ur pc will crash :)
         //TODO: disable the faces while their not being seeing
-        const int SIZE = 50;
-        const int HEIGHT = 50;
+        public const int SIZE = 100;
+        public const int HEIGHT = 300;
         public Vector3 position;
         private uint indexCount;
         private int chunkVertexVBO;
@@ -28,7 +28,7 @@ namespace DevDeadly
         private int chunkIBO;
 
         private int textureID;
-        Block[,,] chunkBlocks = new Block[SIZE, HEIGHT, SIZE];
+        public Block[,,] chunkBlocks = new Block[SIZE, HEIGHT, SIZE];
 
         public Chunk(Vector3 position)
         {
@@ -53,7 +53,10 @@ namespace DevDeadly
             {
                 for (int z = 0; z < SIZE; z++)
                 {
-                    heightmap[x, z] = SimplexNoise.Noise.CalcPixel2D(x, z, 0.005F);
+                    float worldX = x + position.X;
+                    float worldZ = z + position.Z;
+
+                    heightmap[x, z] = SimplexNoise.Noise.CalcPixel2D((int)worldX, (int)worldZ, 0.005F);
                 }
             }
 
@@ -79,6 +82,10 @@ namespace DevDeadly
                         {
                             type = BlockType.GRASS;
                         }
+                        if(y == columnHeight -9)
+                        {
+                            type = BlockType.LAVA;
+                        }
 
                         if (type != BlockType.EMPTY)
                         {
@@ -86,8 +93,10 @@ namespace DevDeadly
                             chunkBlocks[x, y, z] = block;
                             SolidBlockAABBs.Add(block.AABB);
                         }
-
-                        chunkBlocks[x, y, z] = new Block(new Vector3(x, y, z), type);
+                        else
+                        {
+                            chunkBlocks[x, y, z] = null;
+                        }
                     }
                 }
             }
@@ -101,30 +110,30 @@ namespace DevDeadly
                 {
                     for (int y = 0; y < HEIGHT; y++)
                     {
-                        if (chunkBlocks[x, y, z].type != BlockType.EMPTY)
+                        if (chunkBlocks[x, y, z] != null && chunkBlocks[x, y, z].type != BlockType.EMPTY)
                         {
                             // LEFT
-                            if (x == 0 || chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
+                            if (x == 0 || chunkBlocks[x - 1, y, z] == null || chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
                                 IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
 
                             // RIGHT
-                            if (x == SIZE - 1 || chunkBlocks[x + 1, y, z].type == BlockType.EMPTY)
+                            if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null || chunkBlocks[x + 1, y, z].type == BlockType.EMPTY)
                                 IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
 
                             // BOTTOM
-                            if (y == 0 || chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
+                            if (y == 0 || chunkBlocks[x, y - 1, z] == null || chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
                                 IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
 
                             // TOP
-                            if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
+                            if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null || chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
                                 IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
 
                             // FRONT
-                            if (z == SIZE - 1 || chunkBlocks[x, y, z + 1].type == BlockType.EMPTY)
+                            if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null || chunkBlocks[x, y, z + 1].type == BlockType.EMPTY)
                                 IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
 
                             // BACK
-                            if (z == 0 || chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
+                            if (z == 0 || chunkBlocks[x, y, z - 1] == null || chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
                                 IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
                         }
                     }
@@ -194,8 +203,6 @@ namespace DevDeadly
 
             textureID = LoadTexture("atlas.png");
             indexCount = (uint)chunkIndices.Count;
-
-
             GL.BindVertexArray(0);
 
             Console.WriteLine("Vértices: " + chunkVerts.Count);
@@ -246,6 +253,17 @@ namespace DevDeadly
             GL.DeleteBuffer(chunkUVVBO);
             GL.DeleteBuffer(chunkIBO);
             GL.DeleteTexture(textureID);
+        }
+
+        public void Rebuild()
+        {
+            chunkVerts.Clear();
+            chunkUVs.Clear();
+            chunkIndices.Clear();
+            SolidBlockAABBs.Clear();
+
+            GenFaces(null); // Puedes volver a usar el mismo heightmap o ignorarlo
+            BuildChunk();
         }
 
         public void DrawHUD()

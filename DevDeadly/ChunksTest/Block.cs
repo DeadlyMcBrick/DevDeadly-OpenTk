@@ -10,7 +10,7 @@ using DevDeadly.ChunksTest;
 
 namespace DevDeadly
 {
-    class Block
+    public class Block
     {
         public BoundingBox AABB { get; private set; }
         public Vector3 position;

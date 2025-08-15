@@ -9,41 +9,41 @@ using DevDeadly;
 
 namespace DevDeadly.Shaders
 {
-    public class Shader
+    public class Creation
     {
-        public int Handle;
+        public int Handle4;
         private bool disposedValue = false;
         public int programID;
-        int shaderProgram;
-        Shader shader;
+        Creation creation;
         private Stopwatch timer = Stopwatch.StartNew();
 
-        public Shader(string vertexShaderSource, string fragmentShaderSource)
+        public Creation(string CreationVerts, string CreationFrags)
         {
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
-            GL.ShaderSource(vertexShader, vertexShaderSource);
+            GL.ShaderSource(vertexShader, CreationVerts);
             CompileShader(vertexShader);
 
             int fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
-            GL.ShaderSource(fragmentShader, fragmentShaderSource);
+            GL.ShaderSource(fragmentShader, CreationFrags);
             CompileShader(fragmentShader);
 
-            Handle = GL.CreateProgram();
-            GL.AttachShader(Handle, vertexShader);
-            GL.AttachShader(Handle, fragmentShader);
-            GL.LinkProgram(Handle);
 
-            GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out int success);
+            Handle4 = GL.CreateProgram();
+            GL.AttachShader(Handle4, vertexShader);
+            GL.AttachShader(Handle4, fragmentShader);
+            GL.LinkProgram(Handle4);
+
+            //Debuggin shit
+            GL.GetProgram(Handle4, GetProgramParameterName.LinkStatus, out int success);
             if (success == 0)
             {
-                string infoLog = GL.GetProgramInfoLog(Handle);
-                Console.WriteLine("Program link error???? " + infoLog);
+                string infoLog = GL.GetProgramInfoLog(Handle4);
+                Console.WriteLine("Program link error: " + infoLog);
             }
 
             GL.DeleteShader(vertexShader);
             GL.DeleteShader(fragmentShader);
         }
-
 
         private void CompileShader(int shader)
         {
@@ -52,13 +52,13 @@ namespace DevDeadly.Shaders
             if (success == 0)
             {
                 string infoLog = GL.GetShaderInfoLog(shader);
-                Console.WriteLine("Shader compile error??: " + infoLog);
+                Console.WriteLine("Shader compile error: " + infoLog);
             }
         }
 
         public void Use()
         {
-            GL.UseProgram(Handle);
+            GL.UseProgram(Handle4);
         }
 
         public void Dispose()
@@ -66,25 +66,27 @@ namespace DevDeadly.Shaders
             if (disposedValue)
                 return;
 
-            GL.DeleteProgram(Handle);
+            GL.DeleteProgram(Handle4);
             disposedValue = true;
             GC.SuppressFinalize(this);
         }
 
         public int GetAttribLocation(string name)
         {
-            return GL.GetAttribLocation(Handle, name);
+            return GL.GetAttribLocation(Handle4, name);
         }
 
         public void SetInt(string name, int value)
         {
-            int location = GL.GetUniformLocation(Handle, name);
+            int location = GL.GetUniformLocation(Handle4, name);
             GL.Uniform1(location, value);
+
+
         }
 
         public void VertLocation(string name, int value)
         {
-            int vertexColorLocation = GL.GetUniformLocation(shader.Handle, "ourColor");
+            int vertexColorLocation = GL.GetUniformLocation(creation.Handle4, "aCroods");
             if (vertexColorLocation == -1)
             {
                 //I'll try the no string way to fix the frag/vert...
@@ -94,6 +96,19 @@ namespace DevDeadly.Shaders
                 double timeValue = timer.Elapsed.TotalSeconds;
                 float greenValue = (float)Math.Sin(timeValue) / 2.0f + 0.5f;
                 GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+            }
+        }
+
+        public void SetVector2(string name, Vector2 vector)
+        {
+            int location = GL.GetUniformLocation(Handle4, name);
+            if (location == -1)
+            {
+                Console.WriteLine($"Uniform '{name}' not found or unused in shader.");
+            }
+            else
+            {
+                GL.Uniform2(location, vector);
             }
         }
 
@@ -117,7 +132,7 @@ namespace DevDeadly.Shaders
         //}
 
         //Destructor to detect potential memory leaks. Well for my CPU performance
-        ~Shader()
+        ~Creation()
         {
             if (!disposedValue)
             {
@@ -127,22 +142,22 @@ namespace DevDeadly.Shaders
 
         public void SetMatrix4(string name, Matrix4 matrix)
         {
-            GL.UseProgram(Handle);
-            int location = GL.GetUniformLocation(Handle, name);
+            GL.UseProgram(Handle4);
+            int location = GL.GetUniformLocation(Handle4, name);
             GL.UniformMatrix4(location, true, ref matrix);
-            int loc = GL.GetUniformLocation(Handle, "objectColor");
+            int loc = GL.GetUniformLocation(Handle4, "objectColor");
             //Console.WriteLine($"objectColor location: {loc}");
 
         }
         public void SetBool(string name, bool value)
         {
-            GL.Uniform1(GL.GetUniformLocation(Handle, name), value ? 1 : 0);
+            GL.Uniform1(GL.GetUniformLocation(Handle4, name), value ? 1 : 0);
         }
 
 
         public void SetVector3(string name, Vector3 vector)
         {
-            int location = GL.GetUniformLocation(Handle, name);
+            int location = GL.GetUniformLocation(Handle4, name);
             if (location != -1)
             {
                 GL.Uniform3(location, vector);
