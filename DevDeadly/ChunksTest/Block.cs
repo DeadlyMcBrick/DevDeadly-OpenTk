@@ -35,45 +35,25 @@ namespace DevDeadly
 
             if (blockType != BlockType.EMPTY)
             {
-                //Check if this AABB is working...
-                blockUV = TextureData.blockTypeUVs[blockType];
                 Vector3 min = position - new Vector3(0.5f);
                 Vector3 max = position + new Vector3(0.5f);
                 AABB = new BoundingBox(min, max);
             }
 
             faces = new Dictionary<Faces, FaceData>
-            {
-                {Faces.FRONT, new FaceData{
-                    vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.FRONT]),
-                    uv = blockUV[Faces.FRONT]
-                } },
+    {
+        { Faces.FRONT,  new FaceData { vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.FRONT]),  uv = TextureData.defaultUV } },
+        { Faces.BACK,   new FaceData { vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.BACK]),   uv = TextureData.defaultUV } },
+        { Faces.LEFT,   new FaceData { vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.LEFT]),   uv = TextureData.defaultUV } },
+        { Faces.RIGHT,  new FaceData { vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.RIGHT]),  uv = TextureData.defaultUV } },
+        { Faces.TOP,    new FaceData { vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.TOP]),    uv = TextureData.defaultUV } },
+        { Faces.BOTTOM, new FaceData { vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.BOTTOM]), uv = TextureData.defaultUV } }
+    };
+        }
 
-                {Faces.BACK, new FaceData{
-                    vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.BACK]),
-                    uv = blockUV[Faces.BACK]
-                } },
-
-                {Faces.LEFT, new FaceData{
-                    vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.LEFT]),
-                    uv = blockUV[Faces.LEFT]
-                } },
-
-                {Faces.RIGHT, new FaceData{
-                    vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.RIGHT]),
-                    uv = blockUV[Faces.RIGHT]
-                } },
-
-                {Faces.TOP, new FaceData{
-                    vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.TOP]),
-                    uv = blockUV[Faces.TOP]
-                } },
-
-                {Faces.BOTTOM, new FaceData{
-                    vertices = AddTransformedVertices(FaceDataRaw.rawVertexData[Faces.BOTTOM]),
-                    uv = blockUV[Faces.BOTTOM]
-                } }
-            };
+        public int GetTextureLayer()
+        {
+            return TextureData.blockTypeLayers[type];
         }
 
         public List<Vector3> AddTransformedVertices(List<Vector3> vertices)

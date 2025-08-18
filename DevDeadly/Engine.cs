@@ -40,10 +40,10 @@ namespace DevDeadly
 
             layout(location = 0) in vec3 aPosition;
             layout(location = 1) in vec2 aTexCoord;
-            layout(location = 3) in vec3 aNormal;   
+            layout(location = 2) in float aTexLayer;
 
             out vec2 texCoord;
-            out vec3 Normal;
+            out float TexLayer;   
 
             uniform mat4 model;
             uniform mat4 view;
@@ -53,24 +53,30 @@ namespace DevDeadly
             {
                gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
                texCoord = aTexCoord;
+               TexLayer = aTexLayer;
             }";
 
         //Fragment
         string fragmentShaderSource = @"
 
-            #version 330 core
-            in vec2 texCoord;
-            out vec4 FragColor;
-            uniform sampler2D atlas; 
+           #version 330 core
+
+            in vec2 TexCoord;     
+            in float TexLayer;     
+
+            out vec4 FragColor;   
+
+            uniform sampler2DArray atlasArray; 
 
             void main()
             {
-                FragColor = texture(atlas, texCoord);  
+                FragColor = texture(atlasArray, vec3(TexCoord, TexLayer));
             }";
+
 
         string LampVert = @"
 
-            #version 330 core
+            # version 330 core
             layout(location = 0) in vec3 aPos;
 
             uniform mat4 model;
@@ -331,59 +337,6 @@ namespace DevDeadly
             new Vector3(22.0f, 23.5f, 7.0f),
             new Vector3(-10.0f, 20.5f, -12.0f),
             new Vector3(17.0f, 24.0f, -2.0f),
-
-            new Vector3(-25.0f, 21.0f, 10.0f),
-            new Vector3(12.0f, 25.5f, 14.0f),
-            new Vector3(-3.0f, 26.0f, -6.0f),
-            new Vector3(6.0f, 23.0f, 16.0f),
-            new Vector3(9.0f, 22.0f, -15.0f),
-            new Vector3(-14.0f, 27.0f, 3.0f),
-            new Vector3(28.0f, 25.5f, -1.0f),
-            new Vector3(31.0f, 22.5f, 5.0f),
-            new Vector3(-22.0f, 24.0f, -4.0f),
-            new Vector3(4.0f, 21.0f, 13.0f),
-
-            new Vector3(-6.0f, 23.0f, -10.0f),
-            new Vector3(0.0f, 24.0f, 0.0f),
-            new Vector3(11.0f, 26.0f, 9.0f),
-            new Vector3(-8.0f, 22.5f, -14.0f),
-            new Vector3(7.0f, 25.0f, 18.0f),
-            new Vector3(-17.0f, 24.5f, -7.0f),
-            new Vector3(19.0f, 23.0f, 10.0f),
-            new Vector3(-30.0f, 21.5f, -3.0f),
-            new Vector3(2.0f, 26.0f, 15.0f),
-            new Vector3(16.0f, 27.0f, -5.0f),
-
-            new Vector3(-9.0f, 20.0f, 6.0f),
-            new Vector3(14.0f, 22.0f, -11.0f),
-            new Vector3(-13.0f, 23.5f, 1.0f),
-            new Vector3(23.0f, 25.0f, -2.0f),
-            new Vector3(-4.0f, 26.0f, 8.0f),
-            new Vector3(21.0f, 24.5f, -13.0f),
-            new Vector3(-11.0f, 22.0f, 12.0f),
-            new Vector3(27.0f, 23.0f, -9.0f),
-            new Vector3(-19.0f, 21.0f, 4.0f),
-            new Vector3(1.0f, 25.0f, -6.0f),
-            new Vector3(-35.0f, 26.0f, 12.0f),
-            new Vector3(38.0f, 24.0f, -15.0f),
-            new Vector3(-28.0f, 22.5f, 7.0f),
-            new Vector3(33.0f, 27.5f, -10.0f),
-            new Vector3(-40.0f, 25.0f, 18.0f),
-            new Vector3(29.0f, 23.5f, -5.0f),
-            new Vector3(-17.0f, 21.0f, 15.0f),
-            new Vector3(42.0f, 26.0f, -8.0f),
-            new Vector3(-22.0f, 24.0f, 10.0f),
-            new Vector3(36.0f, 22.0f, 3.0f),
-            new Vector3(-14.0f, 27.0f, -17.0f),
-            new Vector3(11.0f, 23.0f, 19.0f),
-            new Vector3(-6.0f, 25.0f, -22.0f),
-            new Vector3(18.0f, 21.5f, 16.0f),
-            new Vector3(-26.0f, 24.5f, -14.0f),
-            new Vector3(24.0f, 22.0f, 11.0f),
-            new Vector3(-32.0f, 23.0f, 6.0f),
-            new Vector3(15.0f, 26.5f, -19.0f),
-            new Vector3(-10.0f, 25.5f, 13.0f),
-            new Vector3(31.0f, 24.0f, -3.0f)
         };
 
         float[] backgroundVertices = 
@@ -1006,11 +959,8 @@ namespace DevDeadly
             // Enable Docking
             if (_showGui)
             {
-                //DockSpace made my background dark taking the whole rez of the screen.
+                //DockSpace made my background dark taking the whole res of the screen.
                 //ImGui.DockSpaceOverViewport();
-                ImGui.Begin("Debugger");
-                ImGui.Button("Button Debug");
-                ImGui.End();
                 ImGui.ShowDemoWindow();
                 ImGuiController.CheckGLError("End of frame");
             }

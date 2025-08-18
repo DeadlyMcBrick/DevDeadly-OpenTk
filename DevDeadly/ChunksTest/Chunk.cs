@@ -7,6 +7,9 @@ using OpenTK.Mathematics;
 using StbImageSharp;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using DevDeadly.Shaders;
+using System.Drawing.Imaging;
+using System.Drawing;
+using DevDeadly.ChunksTest;
 
 namespace DevDeadly
 {
@@ -29,6 +32,7 @@ namespace DevDeadly
 
         private int textureID;
         public Block[,,] chunkBlocks = new Block[SIZE, HEIGHT, SIZE];
+        private List<float> chunkLayers;
 
         public Chunk(Vector3 position)
         {
@@ -37,6 +41,7 @@ namespace DevDeadly
             chunkVerts = new List<Vector3>();
             chunkUVs = new List<Vector2>();
             chunkIndices = new List<uint>();
+            chunkLayers = new List<float>();
 
             float[,] heightmap = GetChunk();
             GenBlocks(heightmap);
@@ -82,7 +87,7 @@ namespace DevDeadly
                         {
                             type = BlockType.GRASS;
                         }
-                        if(y == columnHeight -9)
+                        if(y <= columnHeight - 13)
                         {
                             type = BlockType.LAVA;
                         }
@@ -141,6 +146,7 @@ namespace DevDeadly
             }
         }
 
+
         private void IntegrateFace(Block block, Faces face)
         {
             FaceData data = block.GetFace(face);
@@ -148,6 +154,10 @@ namespace DevDeadly
                 chunkVerts.Add(v);
             foreach (var uv in data.uv)
                 chunkUVs.Add(uv);
+
+            int layer = TextureData.GetLayer(block.type);
+            for (int i = 0; i < 4; i++)
+                chunkLayers.Add(layer);
 
             int baseIndex = chunkVerts.Count - data.vertices.Count;
             for (int i = 0; i < data.vertices.Count; i += 4)
@@ -201,45 +211,113 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
-            textureID = LoadTexture("atlas.png");
+            // Layer buffer (atributo 2)
+            int chunkLayerVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkLayerVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, chunkLayers.Count * sizeof(float), chunkLayers.ToArray(), BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(2, 1, VertexAttribPointerType.Float, false, 0, 0);
+            GL.EnableVertexAttribArray(2);
+
+            // Cargar texturas individuales en lugar del atlas
+            textureID = LoadTextureArray(new string[] {
+        "grass.jpg",    // Layer 0 - GRASS
+        "graves.jpg",     // Layer 1 - DIRT  
+        "lavas.jpg"      // Layer 2 - LAVA
+    });
+
             indexCount = (uint)chunkIndices.Count;
             GL.BindVertexArray(0);
 
             Console.WriteLine("Vértices: " + chunkVerts.Count);
             Console.WriteLine("Índices: " + chunkIndices.Count);
             Console.WriteLine("Triángulos: " + chunkIndices.Count / 3);
-
         }
 
 
-        public int LoadTexture(string path)
+
+        //public int LoadTexture(string path)
+        //{
+
+        //    StbImage.stbi_set_flip_vertically_on_load(1);
+        //    using (var stream = File.OpenRead(path))
+        //    {
+        //        ImageResult image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+
+        //        if (image == null || image.Data == null)
+        //            throw new Exception("Can't load the image");
+
+        //        int texture = GL.GenTexture();
+        //        GL.BindTexture(TextureTarget.Texture2D, texture);
+        //        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
+        //        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+        //        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
+        //        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+        //        return texture;
+        //    }
+        //}
+
+        public static int LoadTextureArray(string[] filePaths)
         {
+            int textureID = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2DArray, textureID);
 
-            StbImage.stbi_set_flip_vertically_on_load(1);
-            using (var stream = File.OpenRead(path))
+            // Cargamos la primera imagen para obtener ancho y alto
+            using (var img = new System.Drawing.Bitmap(filePaths[0]))
             {
-                ImageResult image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+                int width = img.Width;
+                int height = img.Height;
 
-                if (image == null || image.Data == null)
-                    throw new Exception("Can't load the image");
+                // Reservamos memoria para todas las capas
+                GL.TexImage3D(TextureTarget.Texture2DArray, 0,
+                    PixelInternalFormat.Rgba, width, height, filePaths.Length, 0,
+                    OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
+                    PixelType.UnsignedByte, IntPtr.Zero);
 
-                int texture = GL.GenTexture();
-                GL.BindTexture(TextureTarget.Texture2D, texture);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
-                GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+                // Cargamos cada imagen como capa
+                for (int i = 0; i < filePaths.Length; i++)
+                {
+                    using (var bmp = new System.Drawing.Bitmap(filePaths[i]))
+                    {
+                        if (bmp.Width != width || bmp.Height != height)
+                            throw new Exception($"La textura {filePaths[i]} debe tener el mismo tamaño ({width}x{height})");
 
-                return texture;
+                        var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height),
+                            System.Drawing.Imaging.ImageLockMode.ReadOnly,
+                            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                        GL.TexSubImage3D(TextureTarget.Texture2DArray, 0,
+                            0, 0, i, width, height, 1,
+                            OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
+                            PixelType.UnsignedByte, data.Scan0);
+
+                        bmp.UnlockBits(data);
+                    }
+                }
+
+                // Configuración de filtros mejorada
+                GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+                GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+                GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+                GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+
+                // No generar mipmaps si usas Nearest filtering
+                // GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
             }
+
+            return textureID;
         }
+
+
 
         public void Render(Shader program)
         {
             program.Use();
             GL.BindVertexArray(VAO);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
-            GL.BindTexture(TextureTarget.Texture2D, textureID);
+            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.BindTexture(TextureTarget.Texture2DArray, textureID);
+            program.SetInt("atlasArray", 0);
 
             // Drawing shit
             GL.Enable(EnableCap.DepthTest);

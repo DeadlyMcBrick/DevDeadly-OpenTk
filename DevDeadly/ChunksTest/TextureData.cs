@@ -5,164 +5,34 @@ using System.Text;
 using System.Threading.Tasks;
 using Vector2 = OpenTK.Mathematics.Vector2;
 
+using System.Collections.Generic;
 
 namespace DevDeadly.ChunksTest
 {
-      class TextureData
+    public static class TextureData
     {
-        public static readonly Dictionary<BlockType, Dictionary<Faces, List<Vector2>>> blockTypeUVs = new Dictionary<BlockType, Dictionary<Faces, List<Vector2>>>()
+        public static readonly Dictionary<BlockType, int> blockTypeLayers = new Dictionary<BlockType, int>()
         {
-            {BlockType.DIRT, new Dictionary<Faces, List<Vector2>>()
-            {
-                {Faces.FRONT, new List<Vector2>()
-                {
-                     new Vector2 (2f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (2f/16f, 1f),
-                }},
+            { BlockType.GRASS, 0 },
+            { BlockType.DIRT,  1 }, 
+            { BlockType.LAVA,  2 }, 
+        };
 
-                 {Faces.BACK, new List<Vector2>()
-                {
-                     new Vector2 (2f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (2f/16f, 1f),
-                }},
+        public static readonly List<Vector2> defaultUV = new List<Vector2>()
+        {
+            new Vector2(0f, 1f), // top-left
+            new Vector2(1f, 1f), // top-right
+            new Vector2(1f, 0f), // bottom-right
+            new Vector2(0f, 0f), // bottom-left
+        };
 
-                  {Faces.LEFT, new List<Vector2>()
-                {
-                     new Vector2 (2f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (2f/16f, 1f),
-                }},
+        public static int GetLayer(BlockType type)
+        {
+            if (blockTypeLayers.TryGetValue(type, out int layer))
+                return layer;
+            return 0; 
+        }
+    }
+}
 
-                 {Faces.RIGHT, new List<Vector2>()
-                {
-                     new Vector2 (2f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (2f/16f, 1f),
-                }},
 
-                  {Faces.TOP, new List<Vector2>()
-                {
-                     new Vector2 (2f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (2f/16f, 1f),
-                }},
-
-                   {Faces.BOTTOM, new List<Vector2>()
-                {
-                     new Vector2 (2f/16f, 15f/16f), 
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (2f/16f, 1f),
-                }}, 
-            } },
-
-           {BlockType.GRASS, new Dictionary<Faces, List<Vector2>>()
-            {
-                {Faces.FRONT, new List<Vector2>()
-                {
-                     new Vector2 (4f/16f, 1f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (4f/16f, 15f/16f),
-                }},
-
-                 {Faces.BACK, new List<Vector2>()
-                {
-                     new Vector2 (4f/16f, 1f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (4f/16f, 15f/16f),
-                }},
-
-                  {Faces.LEFT, new List<Vector2>()
-                {
-                     new Vector2 (4f/16f, 1f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (4f/16f, 15f/16f),
-                }},
-
-                 {Faces.RIGHT, new List<Vector2>()
-                {
-                     new Vector2 (4f/16f, 1f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (4f/16f, 15f/16f),//T2 E: 4 Suits
-                }},
-
-                  {Faces.TOP, new List<Vector2>()
-                {
-                     new Vector2 (8f/16f, 14f/16f),
-                     new Vector2 (7f/16f, 14f/16f),
-                     new Vector2 (7f/16f, 13f/16f), //bottom left
-                     new Vector2 (8f/16f, 13f/16f), //bottom right
-                }},
-
-                   {Faces.BOTTOM, new List<Vector2>()
-                {
-                     new Vector2 (4f/16f, 1f),
-                     new Vector2 (3f/16f, 1f),
-                     new Vector2 (3f/16f, 15f/16f),
-                     new Vector2 (4f/16f, 15f/16f),
-                }},
-            }},
-
-          {BlockType.LAVA, new Dictionary<Faces, List<Vector2>>()
-{
-                    {Faces.FRONT, new List<Vector2>()
-                    {
-                         new Vector2 (15f/16f, 1f/16f),   
-                         new Vector2 (1f, 1f/16f),         
-                         new Vector2 (1f, 0f),          
-                         new Vector2 (15f/16f, 0f),       
-                    }},
-
-                    {Faces.BACK, new List<Vector2>()
-                    {
-                         new Vector2 (15f/16f, 1f/16f),
-                         new Vector2 (1f, 1f/16f),
-                         new Vector2 (1f, 0f),
-                         new Vector2 (15f/16f, 0f),
-                    }},
-
-                    {Faces.LEFT, new List<Vector2>()
-                    {
-                         new Vector2 (15f/16f, 1f/16f),
-                         new Vector2 (1f, 1f/16f),
-                         new Vector2 (1f, 0f),
-                         new Vector2 (15f/16f, 0f),
-                    }},
-
-                    {Faces.RIGHT, new List<Vector2>()
-                    {
-                         new Vector2 (15f/16f, 1f/16f),
-                         new Vector2 (1f, 1f/16f),
-                         new Vector2 (1f, 0f),
-                         new Vector2 (15f/16f, 0f),
-                    }},
-
-                    {Faces.TOP, new List<Vector2>()
-                    {
-                         new Vector2 (15f/16f, 1f/16f),
-                         new Vector2 (1f, 1f/16f),
-                         new Vector2 (1f, 0f),
-                         new Vector2 (15f/16f, 0f),
-                    }},
-
-                    {Faces.BOTTOM, new List<Vector2>()
-                    {
-                         new Vector2 (15f/16f, 1f/16f),
-                         new Vector2 (1f, 1f/16f),
-                         new Vector2 (1f, 0f),
-                         new Vector2 (15f/16f, 0f),
-                    }},
-                }}
-             };
-          }}
