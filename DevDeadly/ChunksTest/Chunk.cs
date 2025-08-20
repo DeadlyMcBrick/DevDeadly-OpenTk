@@ -69,6 +69,7 @@ namespace DevDeadly
         }
 
         public List<BoundingBox> SolidBlockAABBs = new List<BoundingBox>();
+        Random rand = new Random();
         public void GenBlocks(float[,] heightmap)
         {
             for (int x = 0; x < SIZE; x++)
@@ -87,7 +88,12 @@ namespace DevDeadly
                         {
                             type = BlockType.GRASS;
                         }
-                        if(y <= columnHeight - 13)
+                        if (type == BlockType.GRASS && rand.NextDouble() < 0.02)
+                        {
+                            GenerateTree(x, columnHeight, z);
+                        }
+
+                        if (y <= columnHeight - 13)
                         {
                             type = BlockType.LAVA;
                         }
@@ -186,6 +192,48 @@ namespace DevDeadly
                 indexCount += 4;
             }
         }
+        private void GenerateTree(int x, int groundY, int z)
+        {
+            Random rand = new Random(Guid.NewGuid().GetHashCode());
+            int height = rand.Next(4, 7);
+
+            for (int y = 0; y < height; y++)
+            {
+                int trunkY = groundY + y;
+                if (trunkY < HEIGHT)
+                    chunkBlocks[x, trunkY, z] = new Block(new Vector3(x, trunkY, z), BlockType.WOOD);
+            }
+
+            int radius = 2;
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dz = -radius; dz <= radius; dz++)
+                {
+                    for (int dy = -radius; dy <= radius; dy++)
+                    {
+                        int nx = x + dx;
+                        int ny = groundY + height - 1 + dy;
+                        int nz = z + dz;
+
+                        if (nx >= 0 && nx < SIZE &&
+                            ny >= 0 && ny < HEIGHT &&
+                            nz >= 0 && nz < SIZE)
+                        {
+                            if (dx * dx + dy * dy + dz * dz <= radius * radius + 1)
+                            {
+                                if (chunkBlocks[nx, ny, nz] == null ||
+                                    chunkBlocks[nx, ny, nz].type == BlockType.EMPTY)
+                                {
+                                    chunkBlocks[nx, ny, nz] = new Block(new Vector3(nx, ny, nz), BlockType.LEAVES);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
 
         public void BuildChunk()
         {
@@ -218,12 +266,12 @@ namespace DevDeadly
             GL.VertexAttribPointer(2, 1, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(2);
 
-            // Cargar texturas individuales en lugar del atlas
             textureID = LoadTextureArray(new string[] {
-        "grass.jpg",    // Layer 0 - GRASS
-        "graves.jpg",     // Layer 1 - DIRT  
-        "lavas.jpg"      // Layer 2 - LAVA
-    });
+            "ces.jpg",    
+            "graves.jpg",       
+            "lavas.jpg" ,     
+            "plo.png",
+        });
 
             indexCount = (uint)chunkIndices.Count;
             GL.BindVertexArray(0);
@@ -233,48 +281,19 @@ namespace DevDeadly
             Console.WriteLine("Triángulos: " + chunkIndices.Count / 3);
         }
 
-
-
-        //public int LoadTexture(string path)
-        //{
-
-        //    StbImage.stbi_set_flip_vertically_on_load(1);
-        //    using (var stream = File.OpenRead(path))
-        //    {
-        //        ImageResult image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
-
-        //        if (image == null || image.Data == null)
-        //            throw new Exception("Can't load the image");
-
-        //        int texture = GL.GenTexture();
-        //        GL.BindTexture(TextureTarget.Texture2D, texture);
-        //        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
-        //        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        //        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
-        //        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-
-        //        return texture;
-        //    }
-        //}
-
         public static int LoadTextureArray(string[] filePaths)
         {
             int textureID = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2DArray, textureID);
 
-            // Cargamos la primera imagen para obtener ancho y alto
             using (var img = new System.Drawing.Bitmap(filePaths[0]))
             {
                 int width = img.Width;
                 int height = img.Height;
 
-                // Reservamos memoria para todas las capas
-                GL.TexImage3D(TextureTarget.Texture2DArray, 0,
-                    PixelInternalFormat.Rgba, width, height, filePaths.Length, 0,
-                    OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
-                    PixelType.UnsignedByte, IntPtr.Zero);
+                GL.TexImage3D(TextureTarget.Texture2DArray, 0,PixelInternalFormat.Rgba, width, height, filePaths.Length, 0,OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
+                PixelType.UnsignedByte, IntPtr.Zero);
 
-                // Cargamos cada imagen como capa
                 for (int i = 0; i < filePaths.Length; i++)
                 {
                     using (var bmp = new System.Drawing.Bitmap(filePaths[i]))
@@ -295,14 +314,18 @@ namespace DevDeadly
                     }
                 }
 
-                // Configuración de filtros mejorada
-                GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+                GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+                GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
 
-                // No generar mipmaps si usas Nearest filtering
-                // GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
+                float maxAnis;
+                GL.GetFloat((GetPName)All.MaxTextureMaxAnisotropy, out maxAnis);
+
+                float desiredAnis = Math.Min(16.0f, maxAnis);
+                GL.TexParameter(TextureTarget.Texture2DArray,(TextureParameterName)All.TextureMaxAnisotropyExt, desiredAnis);
+
             }
 
             return textureID;
@@ -339,13 +362,10 @@ namespace DevDeadly
             chunkUVs.Clear();
             chunkIndices.Clear();
             SolidBlockAABBs.Clear();
+            chunkLayers.Clear();         
 
-            GenFaces(null); // Puedes volver a usar el mismo heightmap o ignorarlo
+            GenFaces(null); 
             BuildChunk();
-        }
-
-        public void DrawHUD()
-        {
         }
     }
 }

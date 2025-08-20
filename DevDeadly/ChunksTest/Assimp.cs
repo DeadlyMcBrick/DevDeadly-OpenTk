@@ -14,7 +14,6 @@ using System.Reflection;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using GLPrimitiveType = OpenTK.Graphics.OpenGL4.PrimitiveType;
 
-
 public class Model
 {
     ItemObject itemObject;
@@ -23,11 +22,11 @@ public class Model
     private int VBOItem;
     private int EBOItem;
 
-    public List<float> Vertices { get; private set; } = new ();
-    public List<float> TexCoords { get; private set; } = new ();
-    public List<float> Normals { get; private set; } = new ();
-    public List<uint> Indices { get; private set; } = new ();
-    public string TexturePath { get; private set; } 
+    public List<float> Vertices { get; private set; } = new();
+    public List<float> TexCoords { get; private set; } = new();
+    public List<float> Normals { get; private set; } = new();
+    public List<uint> Indices { get; private set; } = new();
+    public string TexturePath { get; private set; }
     public Model(string path)
     {
         LoadModel(path);
@@ -39,7 +38,7 @@ public class Model
         var ObjImporter = new AssimpContext();
         var scene = ObjImporter.ImportFile(path, PostProcessSteps.Triangulate | PostProcessSteps.GenerateNormals);
 
-        if(scene == null || scene.MeshCount == 0)
+        if (scene == null || scene.MeshCount == 0)
         {
             throw new IOException("No mesh found");
         }
@@ -57,33 +56,33 @@ public class Model
 
         if (mesh.TextureCoordinateChannels[0].Count > 0)
         {
-            foreach(var t in mesh.TextureCoordinateChannels[0])
+            foreach (var t in mesh.TextureCoordinateChannels[0])
             {
                 TexCoords.Add(t.X);
                 TexCoords.Add(t.Y);
             }
         }
 
-        foreach(var n in mesh.Normals)
+        foreach (var n in mesh.Normals)
         {
             Normals.Add(n.X);
             Normals.Add(n.Y);
             Normals.Add(n.Z);
         }
 
-        foreach(var face in mesh.Faces)
+        foreach (var face in mesh.Faces)
         {
             foreach (var index in face.Indices)
-            Indices.Add((uint)index); 
+                Indices.Add((uint)index);
         }
 
-        if(scene.MaterialCount > 0)
+        if (scene.MaterialCount > 0)
         {
             var material = scene.Materials[mesh.MaterialIndex];
             var texSlot = material.TextureDiffuse;
-            if(texSlot.FilePath != null)
+            if (texSlot.FilePath != null)
             {
-                TexturePath = Path.Combine(Path.GetDirectoryName(path), texSlot.FilePath);  
+                TexturePath = Path.Combine(Path.GetDirectoryName(path), texSlot.FilePath);
             }
         }
     }
@@ -135,7 +134,7 @@ public class Model
     }
 
     public void Draw()
-    
+
     {
         GL.BindVertexArray(VAOItem);
         GL.UseProgram(itemObject.HandleItem);

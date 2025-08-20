@@ -42,7 +42,7 @@ namespace DevDeadly
             layout(location = 1) in vec2 aTexCoord;
             layout(location = 2) in float aTexLayer;
 
-            out vec2 texCoord;
+            out vec2 TexCoord;
             out float TexLayer;   
 
             uniform mat4 model;
@@ -52,7 +52,7 @@ namespace DevDeadly
             void main()
             {
                gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
-               texCoord = aTexCoord;
+               TexCoord = aTexCoord;
                TexLayer = aTexLayer;
             }";
 
@@ -521,7 +521,7 @@ namespace DevDeadly
                 Close();
             }
 
-            if (mouse.IsButtonDown(MouseButton.Left))
+            if (mouse.IsButtonPressed(MouseButton.Left))
             {
                 var hit = world.RaycastBlock(camera.position, camera.front);
                 if (hit.HasValue)
@@ -531,7 +531,8 @@ namespace DevDeadly
                     chunk.chunkBlocks[pos.X, pos.Y, pos.Z].type = BlockType.EMPTY;
                     chunk.Rebuild();
                 }
-            }
+            }   
+
 
             //if (mouse.IsButtonPressed(MouseButton.Right))
             //{

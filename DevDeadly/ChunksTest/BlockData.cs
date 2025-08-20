@@ -17,7 +17,18 @@ namespace DevDeadly
         GRASS,
         EMPTY,
         LAVA,
+        WOOD,
+        LEAVES,
     }
+
+    public enum BiomeType
+    {
+        FOREST,
+        DESERT,
+        SNOW,
+        JUNGLE
+    }
+
 
     public enum Faces
     {
