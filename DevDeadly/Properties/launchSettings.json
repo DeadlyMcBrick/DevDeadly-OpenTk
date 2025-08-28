@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DevDeadly": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

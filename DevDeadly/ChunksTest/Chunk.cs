@@ -10,6 +10,7 @@ using DevDeadly.Shaders;
 using System.Drawing.Imaging;
 using System.Drawing;
 using DevDeadly.ChunksTest;
+using System.Linq.Expressions;
 
 namespace DevDeadly
 {
@@ -22,8 +23,8 @@ namespace DevDeadly
         private int VAO;
         //Don't set the value with more than 200, otherwise ur pc will crash :)
         //TODO: disable the faces while their not being seeing
-        public const int SIZE = 100;
-        public const int HEIGHT = 300;
+        public const int SIZE = 70;
+        public const int HEIGHT = 70;
         public Vector3 position;
         private uint indexCount;
         private int chunkVertexVBO;
@@ -33,6 +34,7 @@ namespace DevDeadly
         private int textureID;
         public Block[,,] chunkBlocks = new Block[SIZE, HEIGHT, SIZE];
         private List<float> chunkLayers;
+        private List<Vector3> chunkNormals;
 
         public Chunk(Vector3 position)
         {
@@ -42,6 +44,7 @@ namespace DevDeadly
             chunkUVs = new List<Vector2>();
             chunkIndices = new List<uint>();
             chunkLayers = new List<float>();
+            chunkNormals = new List<Vector3>();
 
             float[,] heightmap = GetChunk();
             GenBlocks(heightmap);
@@ -165,6 +168,10 @@ namespace DevDeadly
             for (int i = 0; i < 4; i++)
                 chunkLayers.Add(layer);
 
+            Vector3 normal = GetFaceNormal(face);
+            for (int i = 0; i < data.vertices.Count; i++)
+                chunkNormals.Add(normal);
+
             int baseIndex = chunkVerts.Count - data.vertices.Count;
             for (int i = 0; i < data.vertices.Count; i += 4)
             {
@@ -192,6 +199,20 @@ namespace DevDeadly
                 indexCount += 4;
             }
         }
+
+        private Vector3 GetFaceNormal(Faces face)
+{
+    switch (face)
+    {
+        case Faces.TOP:    return new Vector3(0, 1, 0);
+        case Faces.BOTTOM: return new Vector3(0, -1, 0);
+        case Faces.LEFT:   return new Vector3(-1, 0, 0);
+        case Faces.RIGHT:  return new Vector3(1, 0, 0);
+        case Faces.FRONT:  return new Vector3(0, 0, 1);
+        case Faces.BACK:   return new Vector3(0, 0, -1);
+        default: return new Vector3(0, 1, 0);
+    }
+}
         private void GenerateTree(int x, int groundY, int z)
         {
             Random rand = new Random(Guid.NewGuid().GetHashCode());
@@ -240,38 +261,46 @@ namespace DevDeadly
             VAO = GL.GenVertexArray();
             GL.BindVertexArray(VAO);
 
-            // Vertex buffer
+            // Vertex buffer (location 0) - Posición
             chunkVertexVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkVerts.Count * Vector3.SizeInBytes, chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(0);
 
-            // UV buffer
+            // UV buffer (location 1) - Coord for the textures
             chunkUVVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkUVVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkUVs.Count * Vector2.SizeInBytes, chunkUVs.ToArray(), BufferUsageHint.StaticDraw);
             GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(1);
 
+            // Normal buffer (location 2)
+            int chunkNormalVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkNormalVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, chunkNormals.Count * Vector3.SizeInBytes, chunkNormals.ToArray(), BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 0, 0); //location 2
+            GL.EnableVertexAttribArray(2);
+
+            // Layer buffer (location 3) 
+            int chunkLayerVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkLayerVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, chunkLayers.Count * sizeof(float), chunkLayers.ToArray(), BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(3, 1, VertexAttribPointerType.Float, false, 0, 0); //location 3
+            GL.EnableVertexAttribArray(3);
+
             // Index buffer
             chunkIBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
-            // Layer buffer (atributo 2)
-            int chunkLayerVBO = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, chunkLayerVBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, chunkLayers.Count * sizeof(float), chunkLayers.ToArray(), BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(2, 1, VertexAttribPointerType.Float, false, 0, 0);
-            GL.EnableVertexAttribArray(2);
-
             textureID = LoadTextureArray(new string[] {
-            "ces.jpg",    
-            "graves.jpg",       
-            "lavas.jpg" ,     
-            "plo.png",
-        });
+            "ces.jpg",     // Layer 0 
+            "graves.jpg",  // Layer 1 
+            "Wood.jpg",    // Layer 2 
+            "plo.png",     // Layer 3 
+            "lavas.jpg",   // Layer 4 
+            });
 
             indexCount = (uint)chunkIndices.Count;
             GL.BindVertexArray(0);
@@ -361,6 +390,7 @@ namespace DevDeadly
             chunkVerts.Clear();
             chunkUVs.Clear();
             chunkIndices.Clear();
+            chunkNormals.Clear();
             SolidBlockAABBs.Clear();
             chunkLayers.Clear();         
 

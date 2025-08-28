@@ -44,6 +44,7 @@ namespace DevDeadly
     {
         public List<Vector3> vertices;
         public List<Vector2> uv;
+        public List<Vector3> normals;
     }
 
     public struct FaceDataRaw
@@ -97,6 +98,16 @@ namespace DevDeadly
                 new Vector3(0.5f,-0.5f,0.5f),
                 new Vector3(-0.5f,-0.5f,0.5f)
             }},
+        };
+
+        public static readonly Dictionary<Faces, Vector3> rawNormalData = new Dictionary<Faces, Vector3>
+        {
+            {Faces.FRONT,  Vector3.UnitZ},
+            {Faces.BACK,  -Vector3.UnitZ},
+            {Faces.LEFT,  -Vector3.UnitX},
+            {Faces.RIGHT,  Vector3.UnitX},
+            {Faces.TOP,    Vector3.UnitY},
+            {Faces.BOTTOM,-Vector3.UnitY},
         };
     }
 }

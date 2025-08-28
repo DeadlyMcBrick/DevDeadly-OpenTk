@@ -12,7 +12,7 @@ namespace DevDeadly
         private float SPEED = 16f;
         private float SCREENWIDTH;
         private float SCREENHEIGHT;
-        private float SENSITIVITY = 9f;
+        private float SENSITIVITY = 13f;
 
         public Vector3 position;
         private Vector3 up = Vector3.UnitY;

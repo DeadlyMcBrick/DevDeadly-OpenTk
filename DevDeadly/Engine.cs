@@ -33,17 +33,19 @@ namespace DevDeadly
     }
     public class Game : GameWindow
     {
-        //Vertex
-        string vertexShaderSource = @"
-
-            #version 330 core
+        //Vert
+        string vertexShaderSource =
+            @"#version 330 core
 
             layout(location = 0) in vec3 aPosition;
-            layout(location = 1) in vec2 aTexCoord;
-            layout(location = 2) in float aTexLayer;
+            layout(location = 1) in vec2 aTexCoord;            
+            layout(location = 3) in float aTexLayer;
+            layout(location = 2) in vec3 aNormal;
 
             out vec2 TexCoord;
             out float TexLayer;   
+            out vec3 Normal;
+            out vec3 FragPos;
 
             uniform mat4 model;
             uniform mat4 view;
@@ -51,26 +53,54 @@ namespace DevDeadly
 
             void main()
             {
-               gl_Position =  vec4(aPosition, 1.0) * model * view * projection;        
+               gl_Position =  vec4(aPosition, 1.0) * model * view * projection;  
+
                TexCoord = aTexCoord;
                TexLayer = aTexLayer;
+               Normal = aNormal;
+
+               Normal = normalize(mat3(transpose(inverse(model))) * aNormal);
+               FragPos = vec3(model * vec4(aPosition, 1.0));
+                
             }";
 
         //Fragment
-        string fragmentShaderSource = @"
-
-           #version 330 core
+        string fragmentShaderSource =
+          @"#version 330 core
 
             in vec2 TexCoord;     
-            in float TexLayer;     
+            in float TexLayer;  
+            in vec3 Normal;
+            in vec3 FragPos;
 
             out vec4 FragColor;   
-
             uniform sampler2DArray atlasArray; 
+
+            uniform vec3 lightPos;
+            uniform vec3 lightColor;
+            uniform vec3 viewPos;
 
             void main()
             {
-                FragColor = texture(atlasArray, vec3(TexCoord, TexLayer));
+                float ambientStrength = 0.2;
+                vec3 ambient = ambientStrength * lightColor;
+                
+                vec3 norm = normalize(Normal);
+                vec3 lightDir = normalize(lightPos - FragPos);
+
+                float diff = max(dot(norm, lightDir), 0.0);
+                vec3 diffuse = diff * lightColor;
+
+                ////Specular
+                float specularStren  = 0.5;
+                vec3 viewDir = normalize(viewPos - FragPos);
+                vec3 reflectDir = reflect(-lightDir, norm);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+                vec3 specular = specularStren * spec * lightColor;
+
+                //Color Final
+                vec3 lighting = ambient + diffuse + specular;
+                FragColor = vec4(lighting, 1.0) * texture(atlasArray, vec3(TexCoord, TexLayer)); 
             }";
 
 
@@ -313,6 +343,26 @@ namespace DevDeadly
             2, 3, 0
         };
 
+      
+        struct VertexChunk
+        {
+            public Vector3 Position;   // layout(location=0)
+            public Vector3 Normal;     // layout(location=1)
+            public float TexLayer;     // layout(location=2)
+            public Vector2 TexCoord;   // layout(location=3)
+        }
+
+
+        VertexChunk[] vertices = new VertexChunk[]
+           
+            {
+                new VertexChunk {
+                    Position = new Vector3(-0.5f, -0.5f, -0.5f),
+                    TexCoord = new Vector2(0.0f, 0.0f),
+                    TexLayer = 0.0f,
+                    Normal   = new Vector3(0.0f, 0.0f, -1.0f)
+                },
+            };
 
         List<Vector3> cloudPositions = new List<Vector3>()
         {
@@ -388,6 +438,9 @@ namespace DevDeadly
         private int VAOCreate;
         private int EBOCreate;
 
+        //VAO, EBO, VBO (MAIN SET);
+        private int VAOMain;
+
         public int nrAttribute;
         public int width, height;
         public bool OptionCursorState;
@@ -414,7 +467,9 @@ namespace DevDeadly
         private World world;
         private Model modelItem;
 
-        private readonly Vector3 lightPos = new Vector3(1.2f, 1.0f, 2.0f);
+        private readonly Vector3 lightPos = new Vector3(2.0f, 4.0f, 2.0f);
+        private readonly Vector3 Normal = new Vector3(0.0f, 0.0f, -1.0f);
+
 
         //TEXTURE SET
         public Matrix4 projection;
@@ -532,12 +587,6 @@ namespace DevDeadly
                     chunk.Rebuild();
                 }
             }   
-
-
-            //if (mouse.IsButtonPressed(MouseButton.Right))
-            //{
-            //    world.TryPlaceBlock(camera);
-            //}
         }
 
         protected override void OnLoad()
@@ -545,17 +594,17 @@ namespace DevDeadly
             base.OnLoad();
 
             //Audio Inicialization
-            AudioPlayer player = new AudioPlayer("Key.wav");
+            AudioPlayer player = new AudioPlayer("key.wav");
             Pop = new AudioPlayer("Inventory.wav");
 
             player.Play();
             Console.WriteLine($"Playing sound...{player}");
             Console.WriteLine($"Playing sound...{Pop}");
 
-            //Thread.Sleep(3000);
-            //player.SetVolume(90f);
+            Thread.Sleep(3000);
+            //player.Set(90f);
 
-            modelItem = new Model("C:\\Users\\Camil\\Source\\Repos\\DevDeadly-OpenTk\\DevDeadly\\Models\\Items Opentk.obj");
+            //modelItem = new Model("C:\\Users\\Camil\\Source\\Repos\\DevDeadly-OpenTk\\DevDeadly\\Models\\Items Opentk.obj");
 
             float offsetX = -1.0f / 90f;
             float offsetY = -1.7f;
@@ -659,6 +708,10 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLamp);
             GL.BufferData(BufferTarget.ArrayBuffer, lampVertices.Length * sizeof(float), lampVertices, BufferUsageHint.StaticDraw);
 
+            // Normal en location = 3
+            GL.EnableVertexAttribArray(3);
+            GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
+
             int lampPosLocation = lampShader.GetAttribLocation("aPosition");
             GL.EnableVertexAttribArray(lampPosLocation);
             GL.VertexAttribPointer(lampPosLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
@@ -666,14 +719,18 @@ namespace DevDeadly
             int posAttrib = lampShader.GetAttribLocation("aPos");
             GL.EnableVertexAttribArray(posAttrib);
             GL.VertexAttribPointer(posAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
-
-            int Anormal = lampShader.GetAttribLocation("aNormal");
-            GL.EnableVertexAttribArray(Anormal);
-            GL.VertexAttribPointer(Anormal, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            //  CLOUD
+            int AnormalTesting = lampShader.GetAttribLocation("aNormal");
+            //GL.EnableVertexAttribArray(8);
+            GL.VertexAttribPointer(AnormalTesting, 3, VertexAttribPointerType.Float, false, 9 * sizeof(float), 6 * sizeof(float));
+            GL.EnableVertexAttribArray(8);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindVertexArray(0);
+
+            //////CLOUD
             VAOCloud = GL.GenVertexArray();
             int VBOCloud = GL.GenBuffer();
 
@@ -690,7 +747,7 @@ namespace DevDeadly
             GL.EnableVertexAttribArray(posCoord);
             GL.BindVertexArray(0);
 
-            // INVENTORY
+            //INVENTORY
             int VBOInventory = GL.GenBuffer();
             VAOInventory = GL.GenVertexArray();
             EBOInventory = GL.GenBuffer();
@@ -730,7 +787,10 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            //CREATE
+            //GL.BindBuffer(BufferTarget.ArrayBuffer, VBOItem);
+            //GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * Marshal.SizeOf<VertexChunk>(), vertices, BufferUsageHint.StaticDraw);
+
+            ////CREATE
             int VBOCreate = GL.GenBuffer();
             VAOCreate = GL.GenVertexArray();
             EBOCreate = GL.GenBuffer();
@@ -753,12 +813,11 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            VAOItem = GL.GenVertexArray();
-            VBOItem = GL.GenBuffer();
-            EBOItem = GL.GenBuffer();
+            //VAOItem = GL.GenVertexArray();
+            //VBOItem = GL.GenBuffer();
+            //EBOItem = GL.GenBuffer();
 
-            GL.BindVertexArray(VAOItem);
-
+            //GL.BindVertexArray(VAOItem);
             //// Vertex buffer
             //GL.BindBuffer(BufferTarget.ArrayBuffer, VBOItem);
             //GL.BufferData(BufferTarget.ArrayBuffer, vertexData.Length * sizeof(float), vertexData, BufferUsageHint.StaticDraw);
@@ -766,17 +825,6 @@ namespace DevDeadly
             //// Element buffer
             //GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOItem);
             //GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Count * sizeof(uint), Indices.ToArray(), BufferUsageHint.StaticDraw);
-
-            // Atributo: posición (location = 0)
-            GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride: 0 * sizeof(float), 0);
-
-            // Atributo: normales (location = 1)
-
-            // Atributo: UV (location = 2)
-            GL.EnableVertexAttribArray(2);
-            GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, stride:0 * sizeof(float), 6 * sizeof(float));
-            GL.BindVertexArray(0);
 
             int ObjectPosition = itemObject.GetAttribLocation("aPos");
             GL.VertexAttribPointer(ObjectPosition, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
@@ -859,8 +907,13 @@ namespace DevDeadly
             lampShader.SetMatrix4("model", lampMatrix);
             lampShader.SetMatrix4("view", camera.GetViewMatrix());
             lampShader.SetMatrix4("projection", camera.GetProjectionMatrix());
+            //lampShader.SetVector3("lightPos", new Vector3(5.0f, 5.0f, 0.0f));
+            //GL.Uniform3(GL.GetUniformLocation(lampShader.Handle2,"lightPos"),lightPos);
+            //GL.Uniform3(GL.GetUniformLocation(lampShader.Handle2, "lightColor"), new Vector3(1.0f, 1.0f, 1.0f));
+            //GL.Uniform3(GL.GetUniformLocation(lampShader.Handle2, "viewPos"), camera.position);
+
             //lampShader.SetVector3("objectColor", new Vector3(1.0f, 1.0f, 1.0f));
-            lampShader.SetVector3("lightColor", new Vector3(5.0f, 5.0f, 0.0f));
+            //lampShader.SetVector3("lightColor", new Vector3(5.0f, 5.0f, 0.0f));
             //lampShader.SetVector3("viewPos", camera.position);
             //lampShader.SetVector3("lightPos", lightPos);
 
@@ -875,6 +928,10 @@ namespace DevDeadly
             lightingShader.SetMatrix4("model", model);
             lightingShader.SetMatrix4("view", view);
             lightingShader.SetMatrix4("projection", projection);
+            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightPos"), lightPos);
+            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightColor"), new Vector3(1.0f, 1.0f, 0.0f));
+            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "viewPos"), camera.position);
+
             //chunk.Render(lightingShader);
             world.RenderAll(lightingShader);
 
@@ -919,23 +976,23 @@ namespace DevDeadly
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
-            Matrix4 modelItem = Matrix4.Identity;
-            Matrix4 viewItem = camera.GetViewMatrix();
-            Matrix4 projectionItem = camera.GetProjectionMatrix();
+            //Matrix4 modelItem = Matrix4.Identity;
+            //Matrix4 viewItem = camera.GetViewMatrix();
+            //Matrix4 projectionItem = camera.GetProjectionMatrix();
 
-            itemObject.Use();
-            itemObject.SetMatrix4("model",modelItem);
-            itemObject.SetMatrix4("view", camera.GetViewMatrix());
-            itemObject.SetMatrix4("projection", camera.GetProjectionMatrix());
+            //itemObject.Use();
+            //itemObject.SetMatrix4("model",modelItem);
+            //itemObject.SetMatrix4("view", camera.GetViewMatrix());
+            //itemObject.SetMatrix4("projection", camera.GetProjectionMatrix());
 
-            GL.BindVertexArray(VAOItem);
-            GL.UseProgram(itemObject.HandleItem);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-            GL.BindVertexArray(0);
+            //GL.BindVertexArray(VAOItem);
+            //GL.UseProgram(itemObject.HandleItem);
+            //GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+            //GL.BindVertexArray(0);
 
-            int modelItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "model");
-            int viewItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "view");
-            int projectionItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "projection");
+            //int modelItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "model");
+            //int viewItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "view");
+            //int projectionItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "projection");
 
             int modelLampLocation = GL.GetUniformLocation(lampShader.Handle2, "model");
             int viewLampLocation = GL.GetUniformLocation(lampShader.Handle2, "view");
@@ -961,7 +1018,7 @@ namespace DevDeadly
             if (_showGui)
             {
                 //DockSpace made my background dark taking the whole res of the screen.
-                //ImGui.DockSpaceOverViewport();
+                //ImGui.DockSpaceOverViewport();    
                 ImGui.ShowDemoWindow();
                 ImGuiController.CheckGLError("End of frame");
             }
