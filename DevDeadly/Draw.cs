@@ -137,4 +137,42 @@ namespace DevDeadly
             2, 3, 0
         };
     }
+
+    public class Slot
+    {
+        const float offsetX = -1.0f / 90f;
+        const float offsetY = -1.7f;
+        const float SlotWidth = 1.6f;
+        const float hudHeight = 0.2f;
+        const float offsetX2 = 0.0f;
+        const float offsetY2 = 0.2f;
+        const float CreateWidth = 1.2f;
+        const float CreateHeight = 1.6f;
+
+        public static float[] verticesHUD =
+        {
+            -SlotWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
+             SlotWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f,
+             SlotWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f,
+            -SlotWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
+        };
+
+        public static float[] backgroundVertices =
+
+        {
+            -(SlotWidth * 0.90f) / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
+            (SlotWidth * 0.90f) / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f,
+            (SlotWidth * 0.90f) / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f,
+            -(SlotWidth * 0.90f) / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
+        };
+
+        public static float[] createHUD =
+
+        {
+           -CreateWidth / 2 + offsetX2, -CreateHeight / 2 + offsetY2, 0f, 1f,
+           CreateWidth / 2 + offsetX2, -CreateHeight / 2 + offsetY2, 1f, 1f,
+           CreateWidth / 2 + offsetX2,  CreateHeight / 2 + offsetY2, 1f, 0f,
+           -CreateWidth / 2 + offsetX2,  CreateHeight / 2 + offsetY2, 0f, 0f,
+        };
+    }
 }

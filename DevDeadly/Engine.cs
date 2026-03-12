@@ -10,44 +10,45 @@ using Vector3 = OpenTK.Mathematics.Vector3;
 
 namespace DevDeadly
 {
-    
     public class Game : GameWindow
     {
-        private bool _showGui = true;
-        private bool _hideInventory = true;
-        private bool _hideCreate = true;
+        public Game(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings()
+        {
+            Size = (X: width, Y: height),
+            Title = title
+        })
+        {
+            this.width = width; this.height = height;
+        }
 
-        // VAO,EBO,VBO (TEXTURE SET)
         private int VertexArrayObject;
         private int ElementBufferObject;
         private int VertexBufferObject;
-
+        private bool _showGui = true;
+        private bool _hideCreate = true;
         private int VAOLamp;
-        private int EBOLamp;
         private int VBOLamp;
-        private int VAOModel;
-
         private int VAOCloud;
-
         private int VAOInventory;
         private int EBOInventory;
-
         private int VAOTransparency;
         private int VBOTransparency;
         private int EBOTransparency;
-
         private int VAOCreate;
         private int EBOCreate;
-
-        //VAO, EBO, VBO (MAIN SET);
         private int VAOMain;
         public int nrAttribute;
         public int width, height;
         public bool OptionCursorState;
 
-        //SHADER SET
         private Stopwatch timer = Stopwatch.StartNew();
         public AudioPlayer Pop;
+
+        private readonly Vector3 lightPos = new Vector3(2.0f, 4.0f, 2.0f);
+        public Matrix4 projection;
+        public Matrix4 model;
+        public Matrix4 view;
+        public static int TextureID;
 
         Shader lightingShader;
         Shader lampShader;
@@ -62,28 +63,6 @@ namespace DevDeadly
         Texture texturehud;
         World world;
         ImGuiController _controller;
-
-        private readonly Vector3 lightPos = new Vector3(2.0f, 4.0f, 2.0f);
-        private readonly Vector3 Normal = new Vector3(0.0f, 0.0f, -1.0f);
-        public Matrix4 projection;
-        public Matrix4 model;
-        public Matrix4 view;
-        public static int TextureID;
-
-        //ROT Y
-        float yRot;
-
-        //ROT X
-        float zRot;
-
-        public Game(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings()
-        {
-            Size = (X: width, Y: height),
-            Title = title
-        })
-        {
-            this.width = width; this.height = height;
-        }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
@@ -169,45 +148,7 @@ namespace DevDeadly
             AudioPlayer player = new AudioPlayer("key.wav");
             Pop = new AudioPlayer("Inventory.wav");
             player.Play();
-            Console.WriteLine($"Playing sound...{player}");
-            Console.WriteLine($"Playing sound...{Pop}");
             Thread.Sleep(3000);
-
-            float offsetX = -1.0f / 90f;
-            float offsetY = -1.7f;
-            float SlotWidth = 1.6f;
-            float hudHeight = 0.2f;
-
-            float[] verticesHUD =
-            {
-                -SlotWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
-                 SlotWidth / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f,
-                 SlotWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f,
-                -SlotWidth / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
-            };
-
-            float[] backgroundVertices =
-
-            {
-                -(SlotWidth * 0.90f) / 2 + offsetX, -hudHeight / 2 + offsetY, 0f, 1f,
-                 (SlotWidth * 0.90f) / 2 + offsetX, -hudHeight / 2 + offsetY, 1f, 1f,
-                 (SlotWidth * 0.90f) / 2 + offsetX,  hudHeight / 2 + offsetY, 1f, 0f,
-                -(SlotWidth * 0.90f) / 2 + offsetX,  hudHeight / 2 + offsetY, 0f, 0f,
-            };
-
-            float offsetX2 = 0.0f;       
-            float offsetY2 = 0.2f;      
-            float CreateWidth = 1.2f;   
-            float CreateHeight = 1.6f;
-
-            float[] createHUD =
-
-            {
-                -CreateWidth / 2 + offsetX2, -CreateHeight / 2 + offsetY2, 0f, 1f,
-                 CreateWidth / 2 + offsetX2, -CreateHeight / 2 + offsetY2, 1f, 1f,
-                 CreateWidth / 2 + offsetX2,  CreateHeight / 2 + offsetY2, 1f, 0f,
-                -CreateWidth / 2 + offsetX2,  CreateHeight / 2 + offsetY2, 0f, 0f,
-            };
 
             timer = Stopwatch.StartNew();
             camera.SetObstacles(chunk.SolidBlockAABBs);
@@ -225,13 +166,10 @@ namespace DevDeadly
             //LAMP
             VAOLamp = GL.GenVertexArray();
             VBOLamp = GL.GenBuffer();
-
             GL.BindVertexArray(VAOLamp);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOLamp);
             GL.BufferData(BufferTarget.ArrayBuffer,Draw.lampVertices.Length * sizeof(float), Draw.lampVertices, BufferUsageHint.StaticDraw);
-
-            // Normal en location = 3
-            GL.EnableVertexAttribArray(3);
+            GL.EnableVertexAttribArray(3); // Normal en location = 3
             GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
 
             int lampPosLocation = lampShader.GetAttribLocation("aPosition");
@@ -248,11 +186,10 @@ namespace DevDeadly
             //GL.EnableVertexAttribArray(8);
             GL.VertexAttribPointer(AnormalTesting, 3, VertexAttribPointerType.Float, false, 9 * sizeof(float), 6 * sizeof(float));
             GL.EnableVertexAttribArray(8);
-
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            //////CLOUD
+            //CLOUD
             VAOCloud = GL.GenVertexArray();
             int VBOCloud = GL.GenBuffer();
 
@@ -276,7 +213,7 @@ namespace DevDeadly
 
             GL.BindVertexArray(VAOInventory);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOInventory);
-            GL.BufferData(BufferTarget.ArrayBuffer, verticesHUD.Length * sizeof(float), verticesHUD, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, Slot.verticesHUD.Length * sizeof(float), Slot.verticesHUD, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOInventory);
             GL.BufferData(BufferTarget.ElementArrayBuffer, Draw.indicesHUD.Length * sizeof(uint), Draw.indicesHUD, BufferUsageHint.StaticDraw);
@@ -291,13 +228,14 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
+            //TRANSPARENCY
             VAOTransparency = GL.GenVertexArray();
             VBOTransparency = GL.GenBuffer();
             EBOTransparency = GL.GenBuffer();
 
             GL.BindVertexArray(VAOTransparency);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOTransparency);
-            GL.BufferData(BufferTarget.ArrayBuffer, backgroundVertices.Length * sizeof(float), backgroundVertices, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, Slot.backgroundVertices.Length * sizeof(float), Slot.backgroundVertices, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOTransparency);
             GL.BufferData(BufferTarget.ElementArrayBuffer, Draw.backgroundIndices.Length * sizeof(uint), Draw.backgroundIndices, BufferUsageHint.StaticDraw);
@@ -309,14 +247,14 @@ namespace DevDeadly
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            ////CREATE
+            //CREATE
             int VBOCreate = GL.GenBuffer();
             int VAOCreate = GL.GenVertexArray();
             EBOCreate = GL.GenBuffer();
 
             GL.BindVertexArray(VAOCreate);
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBOCreate);
-            GL.BufferData(BufferTarget.ArrayBuffer, createHUD.Length * sizeof(float), createHUD, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, Slot.createHUD.Length * sizeof(float), Slot.createHUD, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBOCreate);
             GL.BufferData(BufferTarget.ElementArrayBuffer, Draw.indicesCreate.Length * sizeof(uint), Draw.indicesCreate, BufferUsageHint.StaticDraw);
@@ -399,7 +337,6 @@ namespace DevDeadly
 
             //lampModel = Matrix4.CreateRotationZ(yRot) * Matrix4.CreateTranslation(10f, 0f, -5f);
             //yRot += 0.00f;
-
             //Matrix4 lampMatrix = Matrix4.Identity;
             Matrix4 lampMatrix = Matrix4.CreateTranslation(0f, 60f, 0f) + Matrix4.CreateScale(7f);
 
@@ -424,8 +361,8 @@ namespace DevDeadly
             GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightColor"), new Vector3(1.0f, 1.0f, 0.0f));
             GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "viewPos"), camera.position);
 
-            //chunk.Render(lightingShader);
-            world.RenderAll(lightingShader);
+            //chunk.Render(lightingShader);  //AABB Collition on
+            world.RenderAll(lightingShader);  
 
             int modelLocation = GL.GetUniformLocation(lightingShader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(lightingShader.Handle, "view");
@@ -445,7 +382,6 @@ namespace DevDeadly
                 create.SetInt("TextureCreate", 11);
                 createhud.Use(TextureUnit.Texture11);
                 GL.BindVertexArray(VAOCreate);
-
                 GL.Enable(EnableCap.DepthTest);
                 GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
                 GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
@@ -519,7 +455,6 @@ namespace DevDeadly
         protected override void OnResize(ResizeEventArgs e)
         {
             base.OnResize(e);
-
             width = e.Width;
             height = e.Height;
             GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
