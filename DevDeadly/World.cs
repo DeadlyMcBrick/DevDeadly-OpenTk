@@ -96,7 +96,6 @@ namespace DevDeadly
         public void TryPlaceBlock(Camera camera)
         {
             Console.WriteLine("Trying to hit the block...");
-
             var result = RaycastBlock(camera.position, camera.front);
             if (result != null)
             {

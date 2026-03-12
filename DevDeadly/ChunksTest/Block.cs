@@ -1,15 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using Vector3 = OpenTK.Mathematics.Vector3;
+﻿using Vector3 = OpenTK.Mathematics.Vector3;
 using Vector2 = OpenTK.Mathematics.Vector2;
 using DevDeadly.ChunksTest;
 
 namespace DevDeadly
 {
+    public class BoundingBox
+    {
+        public Vector3 Min { get; }
+        public Vector3 Max { get; }
+
+        public BoundingBox(Vector3 min, Vector3 max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public bool Intersects(BoundingBox other)
+        {
+            return (Min.X <= other.Max.X && Max.X >= other.Min.X) &&
+                   (Min.Y <= other.Max.Y && Max.Y >= other.Min.Y) &&
+                   (Min.Z <= other.Max.Z && Max.Z >= other.Min.Z);
+        }
+    }
     public class Block
     {
         public BoundingBox AABB { get; private set; }

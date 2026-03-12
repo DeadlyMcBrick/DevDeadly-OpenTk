@@ -10,263 +10,9 @@ using Vector3 = OpenTK.Mathematics.Vector3;
 
 namespace DevDeadly
 {
-    //AABB Collision next hope...   
-    public class BoundingBox
-    {
-        public Vector3 Min { get; }
-        public Vector3 Max { get; }
-
-        public BoundingBox(Vector3 min, Vector3 max)
-        {
-            Min = min;
-            Max = max;
-        }
-
-        public bool Intersects(BoundingBox other)
-        {
-            return (Min.X <= other.Max.X && Max.X >= other.Min.X) &&
-                   (Min.Y <= other.Max.Y && Max.Y >= other.Min.Y) &&
-                   (Min.Z <= other.Max.Z && Max.Z >= other.Min.Z);
-        }
-    }
+    
     public class Game : GameWindow
     {
-        //Vert
-        string vertexShaderSource =
-            @"#version 330 core
-
-            layout(location = 0) in vec3 aPosition;
-            layout(location = 1) in vec2 aTexCoord;            
-            layout(location = 3) in float aTexLayer;
-            layout(location = 2) in vec3 aNormal;
-
-            out vec2 TexCoord;
-            out float TexLayer;   
-            out vec3 Normal;
-            out vec3 FragPos;
-
-            uniform mat4 model;
-            uniform mat4 view;
-            uniform mat4 projection;
-
-            void main()
-            {
-               gl_Position =  vec4(aPosition, 1.0) * model * view * projection;  
-
-               TexCoord = aTexCoord;
-               TexLayer = aTexLayer;
-               Normal = aNormal;
-
-               Normal = normalize(mat3(transpose(inverse(model))) * aNormal);
-               FragPos = vec3(model * vec4(aPosition, 1.0));
-                
-            }";
-
-        //Fragment
-        string fragmentShaderSource =
-          @"#version 330 core
-
-            in vec2 TexCoord;     
-            in float TexLayer;  
-            in vec3 Normal;
-            in vec3 FragPos;
-
-            out vec4 FragColor;   
-            uniform sampler2DArray atlasArray; 
-
-            uniform vec3 lightPos;
-            uniform vec3 lightColor;
-            uniform vec3 viewPos;
-
-            void main()
-            {
-                float ambientStrength = 0.2;
-                vec3 ambient = ambientStrength * lightColor;
-                
-                vec3 norm = normalize(Normal);
-                vec3 lightDir = normalize(lightPos - FragPos);
-
-                float diff = max(dot(norm, lightDir), 0.0);
-                vec3 diffuse = diff * lightColor;
-
-                ////Specular
-                float specularStren  = 0.5;
-                vec3 viewDir = normalize(viewPos - FragPos);
-                vec3 reflectDir = reflect(-lightDir, norm);
-                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-                vec3 specular = specularStren * spec * lightColor;
-
-                //Color Final
-                vec3 lighting = ambient + diffuse + specular;
-                FragColor = vec4(lighting, 1.0) * texture(atlasArray, vec3(TexCoord, TexLayer)); 
-            }";
-
-
-        string LampVert = @"
-
-            # version 330 core
-            layout(location = 0) in vec3 aPos;
-
-            uniform mat4 model;
-            uniform mat4 view;
-            uniform mat4 projection;
-
-            void main()
-            {
-                gl_Position = vec4(aPos, 1.0) * model * view * projection;
-            }";
-
-        string LampFrags = @"
-
-            #version 330 core
-
-            out vec4 FragColor;
-
-            uniform vec3 lightColor;
-            uniform vec3 objectColor;
-
-            void main()
-            {
-                FragColor = vec4(lightColor, 1.0f);
-            }";
-
-        string CloudVerts = @"
-
-            #version 330 core
-            layout(location = 0) in vec3 Cloud;
-            layout(location = 1) in vec2 aTexCoordCloud;
-
-            uniform mat4 modelcloud;
-            uniform mat4 viewcloud;
-            uniform mat4 projectioncloud;
-
-            out vec2 TexCoord;
-
-            void main()
-            {
-                gl_Position = vec4(Cloud, 1.0) * modelcloud * viewcloud * projectioncloud;
-                TexCoord = aTexCoordCloud;
-            }";
-
-        string CloudFrags = @"
-        
-            #version 330 core
-
-            in vec2 TexCoord;
-            out vec4 FragColor;
-
-            void main()
-            {
-                FragColor = vec4(0.95, 0.95, 1.0, 0.4);       
-            }";
-
-        string InventoryVerts = @"
-        
-            #version 330 core
-
-            layout (location = 0) in vec2 IUPosition;
-            layout (location = 1) in vec2 IUCoord;
-
-            out vec2 TexCoord;
-
-            uniform mat4 projection; 
-
-            void main()
-            {
-                gl_Position = vec4 (IUPosition, 0.0, 2.0);
-                TexCoord = IUCoord;
-            }";
-
-        string InventoryFrags = @"
-        
-            #version 330 core
-
-            in vec2 TexCoord;
-            out vec4 FragColor;
-
-            uniform sampler2D textureHUD;
-
-            void main()
-            {            
-                FragColor = texture(textureHUD, TexCoord);
-            }";
-
-        string CreationVerts = @"
-
-            #version 330 core
-
-            layout (location = 0) in vec2 Crosition;
-            layout (location = 1) in vec2 aCroods;
-
-            out vec2 TexCoord;
-
-            uniform mat4 projection; 
-
-            void main()
-            {
-                gl_Position = vec4 (Crosition, 0.0, 1.0);
-                TexCoord = aCroods;
-            }";
-
-        string CreationFrags = @"
-
-            #version 330 core
-
-            in vec2 TexCoord;
-            out vec4 FragColor;
-
-            uniform sampler2D TextureCreate;
-
-            void main()
-            {            
-                FragColor = texture(TextureCreate, TexCoord);
-            }";
-
-        string TransparencyVerts = @"
-
-            #version 330 core
-            layout (location = 0) in vec2 aPos;
-
-            void main()
-            {
-                gl_Position = vec4 (aPos, 0.0, 2.0);
-            }";
-
-        string TransparencyFrags = @"
-
-            #version 330 core
-            out vec4 FragColor;
-
-            void main()
-            {
-                FragColor = vec4(0.2, 0.2, 0.2, 0.6);
-            }";
-
-        string ObjectVert = @"
-
-            #version 330 core
-
-            layout (location = 0) in vec3 aPos;
-
-            uniform mat4 model;
-            uniform mat4 view;
-            uniform mat4 projection;
-
-            void main()
-            {
-                gl_Position = vec4(aPos, 1.0) * model * view * projection;
-            }";
-
-        string ObjectFrag = @"
-       
-            #version 330 core
-
-            out vec4 FragColor;
-
-            void main()
-            {
-                FragColor = vec4(1.0, 0.4, 0.2, 1.0); // Color naranja
-            }";
 
         //Build
         float[] lampVertices = {
@@ -448,18 +194,15 @@ namespace DevDeadly
 
         //SHADER SET
         private Stopwatch timer = Stopwatch.StartNew();
-        private int shaderProgram;
-        private int state;
-
         public AudioPlayer Pop;
 
         Shader lightingShader;
-        ShaderLamp lampShader;
-        CloudShader cloudShader;
-        Inventory inventory;
-        Creation create;
-        Rency rency;
-        ItemObject itemObject;
+        Shader lampShader;
+        Shader cloudShader;
+        Shader inventory;
+        Shader create;
+        Shader rency;
+        Shader itemObject;
 
         private World world;
         private Model modelItem;
@@ -499,10 +242,6 @@ namespace DevDeadly
         {
             this.width = width; this.height = height;
         }
-
-
-        /* COLOR CONFIG
-        ---------------------------------------------------------------*/
         public struct Color4
 
         {
@@ -537,7 +276,6 @@ namespace DevDeadly
             camera.Update(input, mouse, e);
             world.GenerateInitialChunks(camera.position);
 
-            //Keybinds to detect if this is actually is being pressed...
             if (KeyboardState.IsKeyDown(Keys.W)) ;
             if (KeyboardState.IsKeyDown(Keys.A)) ;
             if (KeyboardState.IsKeyDown(Keys.S)) ;
@@ -664,14 +402,13 @@ namespace DevDeadly
             camera.SetObstacles(world.GetAllObstacles());
             CursorState = CursorState.Grabbed;
 
-            //String path shader routes
-            lightingShader = new Shader(vertexShaderSource, fragmentShaderSource);
-            lampShader = new ShaderLamp(LampVert, LampFrags);
-            cloudShader = new CloudShader(CloudVerts, CloudFrags);
-            inventory = new Inventory(InventoryVerts, InventoryFrags);
-            create = new Creation(CreationVerts, CreationFrags);
-            rency = new Rency(TransparencyVerts, TransparencyFrags);
-            itemObject = new ItemObject(ObjectVert,ObjectFrag);
+            lightingShader = new Shader(GLSL.vertexShaderSource, GLSL.fragmentShaderSource);
+            lampShader = new Shader(GLSL.LampVert, GLSL.LampFrags);
+            cloudShader = new Shader(GLSL.CloudVerts, GLSL.CloudFrags);
+            inventory = new Shader(GLSL.InventoryVerts, GLSL.InventoryFrags);
+            create = new Shader(GLSL.CreationVerts, GLSL.CreationFrags);
+            rency = new Shader(GLSL.TransparencyVerts, GLSL.TransparencyFrags);
+            itemObject = new Shader(GLSL.ObjectVert,GLSL.ObjectFrag);
 
             var imagePath = "Asset.png";
             texturehud = new TextureHUD(imagePath);
@@ -899,7 +636,7 @@ namespace DevDeadly
             //lampShader.SetVector3("lightPos", lightPos);
 
             GL.BindVertexArray(VAOLamp);
-            GL.UseProgram(lampShader.Handle2);
+            GL.UseProgram(lampShader.Handle);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.BindVertexArray(0);
 
@@ -975,17 +712,17 @@ namespace DevDeadly
             //int viewItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "view");
             //int projectionItemLocation = GL.GetUniformLocation(itemObject.HandleItem, "projection");
 
-            int modelLampLocation = GL.GetUniformLocation(lampShader.Handle2, "model");
-            int viewLampLocation = GL.GetUniformLocation(lampShader.Handle2, "view");
-            int projectionLampLocation = GL.GetUniformLocation(lampShader.Handle2, "projection");
+            int modelLampLocation = GL.GetUniformLocation(lampShader.Handle, "model");
+            int viewLampLocation = GL.GetUniformLocation(lampShader.Handle, "view");
+            int projectionLampLocation = GL.GetUniformLocation(lampShader.Handle, "projection");
 
             GL.UniformMatrix4(modelLampLocation, true, ref lampMatrix);
             GL.UniformMatrix4(viewLampLocation, true, ref view);
             GL.UniformMatrix4(projectionLampLocation, true, ref projection);
 
-            int modelCloudLocation = GL.GetUniformLocation(cloudShader.Handle3, "modelcloud");
-            int viewCloudLocation = GL.GetUniformLocation(cloudShader.Handle3, "viewcloud");
-            int projectionCloudLocation = GL.GetUniformLocation(cloudShader.Handle3, "projectioncloud");
+            int modelCloudLocation = GL.GetUniformLocation(cloudShader.Handle, "modelcloud");
+            int viewCloudLocation = GL.GetUniformLocation(cloudShader.Handle, "viewcloud");
+            int projectionCloudLocation = GL.GetUniformLocation(cloudShader.Handle, "projectioncloud");
 
             //GL.UniformMatrix4(modelCloudLocation, true, ref modelCloud);
             GL.UniformMatrix4(viewCloudLocation, true, ref viewCloud);
