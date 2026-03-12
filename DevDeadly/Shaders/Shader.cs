@@ -123,5 +123,29 @@ namespace DevDeadly.Shaders
                 Console.WriteLine($"Uniform '{name}' is not being found.");
             }
         }
+
+        public struct Color4
+
+        {
+            public float R, G, B, A;
+            public Color4(float r, float g, float b, float a)
+            {
+                R = r;
+                G = g;
+                B = b;
+                A = a;
+            }
+            public static Color4 operator *(Color4 color1, Color4 color2)
+            {
+                return new Color4(
+
+                    color1.R * color2.R,
+                    color1.G * color2.G,
+                    color1.B * color2.B,
+                    color1.A * color2.A
+                );
+            }
+        }
+
     }
 }

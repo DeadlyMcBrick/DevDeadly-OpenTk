@@ -1,25 +1,15 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
-using DevDeadly.Shaders;
+﻿using DevDeadly.Shaders;
 using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace DevDeadly
 {
     public class World
     {
-        Shader shader;
-
         public Dictionary<Vector2i, Chunk> loadedChunks = new Dictionary<Vector2i, Chunk>();
 
         public void GenerateInitialChunks(Vector3 cameraPosition)
         {
             int renderDistance = 1;
-
             for (int x = -renderDistance; x <= renderDistance; x++)
             {
                 for (int z = -renderDistance; z <= renderDistance; z++)
@@ -36,8 +26,6 @@ namespace DevDeadly
 
         public void RenderAll(Shader shader)
         {
-            //Console.WriteLine("Chunks visibles: " + loadedChunks.Count);
-
             foreach (var chunk in loadedChunks.Values)
             {
                 Matrix4 model = Matrix4.CreateTranslation(chunk.position);
@@ -60,13 +48,10 @@ namespace DevDeadly
         {
             const float step = 0.1f;
             Vector3 currentPos = origin;
-
             for (float i = 0; i < maxDistance; i += step)
             {
                 currentPos += direction * step;
-
                 Vector3i blockPos = new Vector3i((int)MathF.Floor(currentPos.X), (int)MathF.Floor(currentPos.Y), (int)MathF.Floor(currentPos.Z));
-
                 Vector2i chunkCoord = new Vector2i(
                     (int)MathF.Floor(blockPos.X / (float)Chunk.SIZE),
                     (int)MathF.Floor(blockPos.Z / (float)Chunk.SIZE)
@@ -89,7 +74,6 @@ namespace DevDeadly
                     }
                 }
             }
-
             return null;
         }
 
@@ -104,7 +88,6 @@ namespace DevDeadly
 
                 Vector3 blockGlobalPos = chunk.position + new Vector3(localBlockPos.X, localBlockPos.Y, localBlockPos.Z);
                 Vector3 placePos = blockGlobalPos + Vector3.Normalize(camera.front);
-
                 Vector3i placePosInt = new Vector3i(
                     (int)MathF.Floor(placePos.X),
                     (int)MathF.Floor(placePos.Y),
@@ -142,7 +125,6 @@ namespace DevDeadly
                 }
             }
         }
-
         public void IntegrateFace(Block block, Faces face)
         {
             FaceData data = block.GetFace(face);

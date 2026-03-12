@@ -1,5 +1,4 @@
-﻿//Windows Screen
-using DevDeadly;
+﻿using DevDeadly;
 class Program
 {
     static void Main(string[] args)
