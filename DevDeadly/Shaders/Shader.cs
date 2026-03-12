@@ -1,11 +1,6 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using DevDeadly;
 
 namespace DevDeadly.Shaders
 {
@@ -14,7 +9,6 @@ namespace DevDeadly.Shaders
         public int Handle;
         private bool disposedValue = false;
         public int programID;
-        int shaderProgram;
         Shader shader;
         private Stopwatch timer = Stopwatch.StartNew();
 
@@ -37,7 +31,7 @@ namespace DevDeadly.Shaders
             if (success == 0)
             {
                 string infoLog = GL.GetProgramInfoLog(Handle);
-                Console.WriteLine("Program link error???? " + infoLog);
+                Console.WriteLine("Program link error?" + infoLog);
             }
 
             GL.DeleteShader(vertexShader);
@@ -52,7 +46,7 @@ namespace DevDeadly.Shaders
             if (success == 0)
             {
                 string infoLog = GL.GetShaderInfoLog(shader);
-                Console.WriteLine("Shader compile error??: " + infoLog);
+                Console.WriteLine("Shader compile error?: " + infoLog);
             }
         }
 
@@ -87,7 +81,7 @@ namespace DevDeadly.Shaders
             int vertexColorLocation = GL.GetUniformLocation(shader.Handle, "ourColor");
             if (vertexColorLocation == -1)
             {
-                //I'll try the no string way to fix the frag/vert...
+
             }
             else
             {
@@ -97,26 +91,6 @@ namespace DevDeadly.Shaders
             }
         }
 
-
-        //internal void SetMatrix(string name, Matrix4 matrix)
-        //{
-        //    // Obtener la ubicación del uniforme en el shader
-        //    int location = GL.GetUniformLocation(Handle, name);
-
-        ////    // Verificar si el uniforme existe en el shader
-        ////    if (location != -1)
-        ////    {
-        ////        // Pasar la matriz al shader
-        ////        GL.UniformMatrix4(location, false, ref matrix);
-        ////    }
-        ////    else
-        ////    {
-        ////        // Si no se encuentra el uniforme, mostrar un mensaje de error
-        ////        Console.WriteLine($"Uniform '{name}' no encontrado en el shader.");
-        ////    }
-        //}
-
-        //Destructor to detect potential memory leaks. Well for my CPU performance
         ~Shader()
         {
             if (!disposedValue)
@@ -130,15 +104,12 @@ namespace DevDeadly.Shaders
             GL.UseProgram(Handle);
             int location = GL.GetUniformLocation(Handle, name);
             GL.UniformMatrix4(location, true, ref matrix);
-            //int loc = GL.GetUniformLocation(Handle, "aNormal");
-            //Console.WriteLine($"aNormal location: {loc}");
-
         }
+
         public void SetBool(string name, bool value)
         {
             GL.Uniform1(GL.GetUniformLocation(Handle, name), value ? 1 : 0);
         }
-
 
         public void SetVector3(string name, Vector3 vector)
         {

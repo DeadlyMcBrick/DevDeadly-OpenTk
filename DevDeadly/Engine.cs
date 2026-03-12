@@ -213,10 +213,8 @@ namespace DevDeadly
 
         //TEXTURE SET
         public Matrix4 projection;
-        //public Texture texture;
-        //public Texture texture2;
-        public TextureCreate createhud;
-        public TextureHUD texturehud;
+        public Texture createhud;
+        public Texture texturehud;
         public Texture itemhud;
         public Matrix4 model;
         public Matrix4 view;
@@ -411,11 +409,11 @@ namespace DevDeadly
             itemObject = new Shader(GLSL.ObjectVert,GLSL.ObjectFrag);
 
             var imagePath = "Asset.png";
-            texturehud = new TextureHUD(imagePath);
+            texturehud = new Texture(imagePath);
             texturehud.Use(TextureUnit.Texture10);  
 
             var imagePath2 = "spritefond.png";
-            createhud = new TextureCreate(imagePath2);
+            createhud = new Texture(imagePath2);
             createhud.Use(TextureUnit.Texture11);
 
             //LAMP

@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using OpenTK.Audio.OpenAL;
 
 public class AudioPlayer : IDisposable
