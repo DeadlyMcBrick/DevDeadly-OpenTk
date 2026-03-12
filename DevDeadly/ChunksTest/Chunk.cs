@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
 using OpenTK.Mathematics;
-using StbImageSharp;
-using Vector3 = OpenTK.Mathematics.Vector3;
 using DevDeadly.Shaders;
-using System.Drawing.Imaging;
-using System.Drawing;
 using DevDeadly.ChunksTest;
-using System.Linq.Expressions;
 
 namespace DevDeadly
 {
@@ -19,22 +12,23 @@ namespace DevDeadly
         private List<Vector3> chunkVerts;
         private List<Vector2> chunkUVs;
         private List<uint> chunkIndices;
+        private List<float> chunkLayers;
+        private List<Vector3> chunkNormals;
 
         private int VAO;
-        //Don't set the value with more than 200, otherwise ur pc will crash :)
-        //TODO: disable the faces while their not being seeing
-        public const int SIZE = 70;
-        public const int HEIGHT = 70;
-        public Vector3 position;
-        private uint indexCount;
         private int chunkVertexVBO;
         private int chunkUVVBO;
         private int chunkIBO;
-
         private int textureID;
+        private uint indexCount;
+
+        public const int SIZE = 70;
+        public const int HEIGHT = 70;
+        public Vector3 position;
         public Block[,,] chunkBlocks = new Block[SIZE, HEIGHT, SIZE];
-        private List<float> chunkLayers;
-        private List<Vector3> chunkNormals;
+        public List<BoundingBox> SolidBlockAABBs = new List<BoundingBox>();
+
+        Random rand = new Random();
 
         public Chunk(Vector3 position)
         {
@@ -48,15 +42,15 @@ namespace DevDeadly
 
             float[,] heightmap = GetChunk();
             GenBlocks(heightmap);
-            GenFaces(heightmap);
+            GenFaces();
             BuildChunk();
         }
 
-        public float[,] GetChunk()
+        private float[,] GetChunk()
         {
             float[,] heightmap = new float[SIZE, SIZE];
-
             SimplexNoise.Noise.Seed = 123456;
+
             for (int x = 0; x < SIZE; x++)
             {
                 for (int z = 0; z < SIZE; z++)
@@ -71,36 +65,22 @@ namespace DevDeadly
             return heightmap;
         }
 
-        public List<BoundingBox> SolidBlockAABBs = new List<BoundingBox>();
-        Random rand = new Random();
-        public void GenBlocks(float[,] heightmap)
+        private void GenBlocks(float[,] heightmap)
         {
             for (int x = 0; x < SIZE; x++)
             {
                 for (int z = 0; z < SIZE; z++)
                 {
-                    int columnHeight = (int)(heightmap[x, z] /10);
+                    int columnHeight = (int)(heightmap[x, z] / 10);
+
                     for (int y = 0; y < HEIGHT; y++)
                     {
                         BlockType type = BlockType.EMPTY;
-                        if (y < columnHeight - 1)
-                        {
-                            type = BlockType.DIRT;
-                        }
-                        if (y == columnHeight - 1)
-                        {
-                            type = BlockType.GRASS;
-                        }
-                        if (type == BlockType.GRASS && rand.NextDouble() < 0.02)
-                        {
-                            GenerateTree(x, columnHeight, z);
-                        }
 
-                        if (y <= columnHeight - 13)
-                        {
-                            type = BlockType.LAVA;
-                        }
-
+                        if (y < columnHeight - 1) type = BlockType.DIRT;
+                        if (y == columnHeight - 1) type = BlockType.GRASS;
+                        if (type == BlockType.GRASS && rand.NextDouble() < 0.02) GenerateTree(x, columnHeight, z);
+                        if (y <= columnHeight - 13) type = BlockType.LAVA;
                         if (type != BlockType.EMPTY)
                         {
                             var block = new Block(new Vector3(x, y, z), type);
@@ -116,7 +96,7 @@ namespace DevDeadly
             }
         }
 
-        public void GenFaces(float[,] heightmap)
+        private void GenFaces()
         {
             for (int x = 0; x < SIZE; x++)
             {
@@ -124,98 +104,75 @@ namespace DevDeadly
                 {
                     for (int y = 0; y < HEIGHT; y++)
                     {
-                        if (chunkBlocks[x, y, z] != null && chunkBlocks[x, y, z].type != BlockType.EMPTY)
-                        {
-                            // LEFT
-                            if (x == 0 || chunkBlocks[x - 1, y, z] == null || chunkBlocks[x - 1, y, z].type == BlockType.EMPTY)
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
+                        var block = chunkBlocks[x, y, z];
+                        if (block == null || block.type == BlockType.EMPTY) continue;
 
-                            // RIGHT
-                            if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null || chunkBlocks[x + 1, y, z].type == BlockType.EMPTY)
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
+                        // LEFT
+                        if (x == 0 || chunkBlocks[x - 1, y, z] == null)
+                            IntegrateFace(block, Faces.LEFT);
 
-                            // BOTTOM
-                            if (y == 0 || chunkBlocks[x, y - 1, z] == null || chunkBlocks[x, y - 1, z].type == BlockType.EMPTY)
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
+                        // RIGHT
+                        if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null)
+                            IntegrateFace(block, Faces.RIGHT);
 
-                            // TOP
-                            if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null || chunkBlocks[x, y + 1, z].type == BlockType.EMPTY)
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
+                        // BOTTOM
+                        if (y == 0 || chunkBlocks[x, y - 1, z] == null)
+                            IntegrateFace(block, Faces.BOTTOM);
 
-                            // FRONT
-                            if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null || chunkBlocks[x, y, z + 1].type == BlockType.EMPTY)
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
+                        // TOP
+                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null)
+                            IntegrateFace(block, Faces.TOP);
 
-                            // BACK
-                            if (z == 0 || chunkBlocks[x, y, z - 1] == null || chunkBlocks[x, y, z - 1].type == BlockType.EMPTY)
-                                IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
-                        }
+                        // FRONT
+                        if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null)
+                            IntegrateFace(block, Faces.FRONT);
+
+                        // BACK
+                        if (z == 0 || chunkBlocks[x, y, z - 1] == null)
+                            IntegrateFace(block, Faces.BACK);
                     }
                 }
             }
         }
 
-
         private void IntegrateFace(Block block, Faces face)
         {
             FaceData data = block.GetFace(face);
-            foreach (var v in data.vertices)
-                chunkVerts.Add(v);
-            foreach (var uv in data.uv)
-                chunkUVs.Add(uv);
+
+            chunkVerts.AddRange(data.vertices);
+            chunkUVs.AddRange(data.uv);
 
             int layer = TextureData.GetLayer(block.type);
-            for (int i = 0; i < 4; i++)
-                chunkLayers.Add(layer);
+            for (int i = 0; i < 4; i++) chunkLayers.Add(layer);
 
             Vector3 normal = GetFaceNormal(face);
-            for (int i = 0; i < data.vertices.Count; i++)
-                chunkNormals.Add(normal);
+            for (int i = 0; i < data.vertices.Count; i++) chunkNormals.Add(normal);
 
             int baseIndex = chunkVerts.Count - data.vertices.Count;
-            for (int i = 0; i < data.vertices.Count; i += 4)
-            {
-                chunkIndices.Add((uint)(baseIndex + 0));
-                chunkIndices.Add((uint)(baseIndex + 1));
-                chunkIndices.Add((uint)(baseIndex + 2));
-                chunkIndices.Add((uint)(baseIndex + 2));
-                chunkIndices.Add((uint)(baseIndex + 3));
-                chunkIndices.Add((uint)(baseIndex + 0));
-            }
-        }
-
-
-        //Create the blocks chunks
-        public void AddIndices(int amtFaces)
-        {
-            for (int i = 0; i < amtFaces; i++)
-            {
-                chunkIndices.Add(0 + indexCount);
-                chunkIndices.Add(1 + indexCount);
-                chunkIndices.Add(2 + indexCount);
-                chunkIndices.Add(2 + indexCount);
-                chunkIndices.Add(3 + indexCount);
-                chunkIndices.Add(0 + indexCount);
-                indexCount += 4;
-            }
+            chunkIndices.Add((uint)(baseIndex + 0));
+            chunkIndices.Add((uint)(baseIndex + 1));
+            chunkIndices.Add((uint)(baseIndex + 2));
+            chunkIndices.Add((uint)(baseIndex + 2));
+            chunkIndices.Add((uint)(baseIndex + 3));
+            chunkIndices.Add((uint)(baseIndex + 0));
         }
 
         private Vector3 GetFaceNormal(Faces face)
-{
-    switch (face)
-    {
-        case Faces.TOP:    return new Vector3(0, 1, 0);
-        case Faces.BOTTOM: return new Vector3(0, -1, 0);
-        case Faces.LEFT:   return new Vector3(-1, 0, 0);
-        case Faces.RIGHT:  return new Vector3(1, 0, 0);
-        case Faces.FRONT:  return new Vector3(0, 0, 1);
-        case Faces.BACK:   return new Vector3(0, 0, -1);
-        default: return new Vector3(0, 1, 0);
-    }
-}
+        {
+            return face switch
+            {
+                Faces.TOP => new Vector3(0, 1, 0),
+                Faces.BOTTOM => new Vector3(0, -1, 0),
+                Faces.LEFT => new Vector3(-1, 0, 0),
+                Faces.RIGHT => new Vector3(1, 0, 0),
+                Faces.FRONT => new Vector3(0, 0, 1),
+                Faces.BACK => new Vector3(0, 0, -1),
+                _ => new Vector3(0, 1, 0),
+            };
+        }
+
         private void GenerateTree(int x, int groundY, int z)
         {
-            Random rand = new Random(Guid.NewGuid().GetHashCode());
             int height = rand.Next(4, 7);
 
             for (int y = 0; y < height; y++)
@@ -223,7 +180,8 @@ namespace DevDeadly
                 int trunkY = groundY + y;
                 if (trunkY < HEIGHT)
                     chunkBlocks[x, trunkY, z] = new Block(new Vector3(x, trunkY, z), BlockType.WOOD);
-            }
+            };
+           
 
             int radius = 2;
             for (int dx = -radius; dx <= radius; dx++)
@@ -242,8 +200,7 @@ namespace DevDeadly
                         {
                             if (dx * dx + dy * dy + dz * dz <= radius * radius + 1)
                             {
-                                if (chunkBlocks[nx, ny, nz] == null ||
-                                    chunkBlocks[nx, ny, nz].type == BlockType.EMPTY)
+                                if (chunkBlocks[nx, ny, nz] == null)
                                 {
                                     chunkBlocks[nx, ny, nz] = new Block(new Vector3(nx, ny, nz), BlockType.LEAVES);
                                 }
@@ -254,60 +211,50 @@ namespace DevDeadly
             }
         }
 
-
-
-        public void BuildChunk()
+        private void BuildChunk()
         {
             VAO = GL.GenVertexArray();
             GL.BindVertexArray(VAO);
 
-            // Vertex buffer (location 0) - Posición
+            // VBOs
             chunkVertexVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkVerts.Count * Vector3.SizeInBytes, chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(0);
 
-            // UV buffer (location 1) - Coord for the textures
             chunkUVVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkUVVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkUVs.Count * Vector2.SizeInBytes, chunkUVs.ToArray(), BufferUsageHint.StaticDraw);
             GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(1);
 
-            // Normal buffer (location 2)
             int chunkNormalVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkNormalVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkNormals.Count * Vector3.SizeInBytes, chunkNormals.ToArray(), BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 0, 0); //location 2
+            GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(2);
 
-            // Layer buffer (location 3) 
             int chunkLayerVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkLayerVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkLayers.Count * sizeof(float), chunkLayers.ToArray(), BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(3, 1, VertexAttribPointerType.Float, false, 0, 0); //location 3
+            GL.VertexAttribPointer(3, 1, VertexAttribPointerType.Float, false, 0, 0);
             GL.EnableVertexAttribArray(3);
 
-            // Index buffer
             chunkIBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
             textureID = LoadTextureArray(new string[] {
-            "ces.jpg",     // Layer 0 
-            "graves.jpg",  // Layer 1 
-            "Wood.jpg",    // Layer 2 
-            "plo.png",     // Layer 3 
-            "lavas.jpg",   // Layer 4 
+                "ces.jpg",    // Layer 0
+                "graves.jpg", // Layer 1
+                "Wood.jpg",   // Layer 2
+                "plo.png",    // Layer 3
+                "lavas.jpg",  // Layer 4
             });
 
             indexCount = (uint)chunkIndices.Count;
             GL.BindVertexArray(0);
-
-            Console.WriteLine("Vértices: " + chunkVerts.Count);
-            Console.WriteLine("Índices: " + chunkIndices.Count);
-            Console.WriteLine("Triángulos: " + chunkIndices.Count / 3);
         }
 
         public static int LoadTextureArray(string[] filePaths)
@@ -320,8 +267,10 @@ namespace DevDeadly
                 int width = img.Width;
                 int height = img.Height;
 
-                GL.TexImage3D(TextureTarget.Texture2DArray, 0,PixelInternalFormat.Rgba, width, height, filePaths.Length, 0,OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
-                PixelType.UnsignedByte, IntPtr.Zero);
+                GL.TexImage3D(TextureTarget.Texture2DArray, 0,
+                    PixelInternalFormat.Rgba, width, height, filePaths.Length,
+                    0, OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
+                    PixelType.UnsignedByte, IntPtr.Zero);
 
                 for (int i = 0; i < filePaths.Length; i++)
                 {
@@ -348,19 +297,10 @@ namespace DevDeadly
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
                 GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
-
-                float maxAnis;
-                GL.GetFloat((GetPName)All.MaxTextureMaxAnisotropy, out maxAnis);
-
-                float desiredAnis = Math.Min(16.0f, maxAnis);
-                GL.TexParameter(TextureTarget.Texture2DArray,(TextureParameterName)All.TextureMaxAnisotropyExt, desiredAnis);
-
             }
 
             return textureID;
         }
-
-
 
         public void Render(Shader program)
         {
@@ -371,7 +311,6 @@ namespace DevDeadly
             GL.BindTexture(TextureTarget.Texture2DArray, textureID);
             program.SetInt("atlasArray", 0);
 
-            // Drawing shit
             GL.Enable(EnableCap.DepthTest);
             GL.DrawElements(PrimitiveType.Triangles, chunkIndices.Count, DrawElementsType.UnsignedInt, 0);
         }
@@ -392,9 +331,9 @@ namespace DevDeadly
             chunkIndices.Clear();
             chunkNormals.Clear();
             SolidBlockAABBs.Clear();
-            chunkLayers.Clear();         
+            chunkLayers.Clear();
 
-            GenFaces(null); 
+            GenFaces();
             BuildChunk();
         }
     }

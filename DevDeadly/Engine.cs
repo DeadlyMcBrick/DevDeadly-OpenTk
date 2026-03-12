@@ -1,13 +1,11 @@
 ﻿using DevDeadly.Shaders;
 using ImGuiNET;
-using OpenTK.Audio.OpenAL;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Diagnostics;
-using System.Reflection;
 using Vector3 = OpenTK.Mathematics.Vector3;
 
 namespace DevDeadly
@@ -440,7 +438,6 @@ namespace DevDeadly
 
         //VAO, EBO, VBO (MAIN SET);
         private int VAOMain;
-
         public int nrAttribute;
         public int width, height;
         public bool OptionCursorState;
@@ -600,11 +597,7 @@ namespace DevDeadly
             player.Play();
             Console.WriteLine($"Playing sound...{player}");
             Console.WriteLine($"Playing sound...{Pop}");
-
             Thread.Sleep(3000);
-            //player.Set(90f);
-
-            //modelItem = new Model("C:\\Users\\Camil\\Source\\Repos\\DevDeadly-OpenTk\\DevDeadly\\Models\\Items Opentk.obj");
 
             float offsetX = -1.0f / 90f;
             float offsetY = -1.7f;
@@ -669,13 +662,6 @@ namespace DevDeadly
             timer = Stopwatch.StartNew();
             //camera.SetObstacles(chunk.SolidBlockAABBs);
             camera.SetObstacles(world.GetAllObstacles());
-
-            //Reminder to apply this as a way to optimizate that shit loading specific faces.
-            //GL.FrontFace(FrontFaceDirection.Cw);
-            //GL.Enable(EnableCap.CullFace);
-            //GL.CullFace(CullFaceMode.Back);
-            //GL.CullFace(CullFaceMode.Front);
-            //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
             CursorState = CursorState.Grabbed;
 
             //String path shader routes
@@ -686,7 +672,6 @@ namespace DevDeadly
             create = new Creation(CreationVerts, CreationFrags);
             rency = new Rency(TransparencyVerts, TransparencyFrags);
             itemObject = new ItemObject(ObjectVert,ObjectFrag);
-            
 
             var imagePath = "Asset.png";
             texturehud = new TextureHUD(imagePath);
@@ -695,10 +680,6 @@ namespace DevDeadly
             var imagePath2 = "spritefond.png";
             createhud = new TextureCreate(imagePath2);
             createhud.Use(TextureUnit.Texture11);
-
-            /*DRAWING 
-            ----------------------------------------------------------------------------------------------------------------------------------------------*/
-            ////in case i want to change it to the lamp shit, i have to replace it as anormal and don't forget to change the vert/frag and add the lightingsource
 
             //LAMP
             VAOLamp = GL.GenVertexArray();
@@ -1017,8 +998,6 @@ namespace DevDeadly
             // Enable Docking
             if (_showGui)
             {
-                //DockSpace made my background dark taking the whole res of the screen.
-                //ImGui.DockSpaceOverViewport();    
                 ImGui.ShowDemoWindow();
                 ImGuiController.CheckGLError("End of frame");
             }
