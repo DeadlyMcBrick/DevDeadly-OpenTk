@@ -37,6 +37,7 @@ namespace DevDeadly
         private int VAOCreate;
         private int EBOCreate;
         private int VAOMain;
+        private double _fpsTimer;
         public int nrAttribute;
         public int width, height;
         public bool OptionCursorState;
@@ -307,6 +308,12 @@ namespace DevDeadly
         {
             base.OnRenderFrame(args);
             _controller.Update(this, (float)args.Time);
+            _fpsTimer += args.Time;
+            if (_fpsTimer >= 0.5)
+            {
+                Title = $"DevDeadly | FPS: {(int)(1.0 / args.Time)}";
+                _fpsTimer = 0;
+            }
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Enable(EnableCap.DepthTest);
