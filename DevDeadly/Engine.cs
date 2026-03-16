@@ -98,7 +98,7 @@ namespace DevDeadly
                 Console.WriteLine($"IsCursorGrabbed: {IsCursorGrabbed}, CursorState: {CursorState}");
             }
 
-            if (KeyboardState.IsKeyDown(Keys.F))
+            if (KeyboardState.IsKeyPressed(Keys.F))
             {
                 WindowState = WindowState == WindowState.Fullscreen ? WindowState.Normal : WindowState.Fullscreen;
             }

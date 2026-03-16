@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using DevDeadly.Shaders;
 using DevDeadly.ChunksTest;
@@ -33,13 +31,11 @@ namespace DevDeadly
         public Chunk(Vector3 position)
         {
             this.position = position;
-
             chunkVerts = new List<Vector3>();
             chunkUVs = new List<Vector2>();
             chunkIndices = new List<uint>();
             chunkLayers = new List<float>();
             chunkNormals = new List<Vector3>();
-
             float[,] heightmap = GetChunk();
             GenBlocks(heightmap);
             GenFaces();
@@ -50,18 +46,13 @@ namespace DevDeadly
         {
             float[,] heightmap = new float[SIZE, SIZE];
             SimplexNoise.Noise.Seed = 123456;
-
             for (int x = 0; x < SIZE; x++)
-            {
                 for (int z = 0; z < SIZE; z++)
                 {
                     float worldX = x + position.X;
                     float worldZ = z + position.Z;
-
                     heightmap[x, z] = SimplexNoise.Noise.CalcPixel2D((int)worldX, (int)worldZ, 0.005F);
                 }
-            }
-
             return heightmap;
         }
 
@@ -72,14 +63,11 @@ namespace DevDeadly
                 for (int z = 0; z < SIZE; z++)
                 {
                     int columnHeight = (int)(heightmap[x, z] / 10);
-
                     for (int y = 0; y < HEIGHT; y++)
                     {
                         BlockType type = BlockType.EMPTY;
-
                         if (y < columnHeight - 1) type = BlockType.DIRT;
                         if (y == columnHeight - 1) type = BlockType.GRASS;
-                        if (type == BlockType.GRASS && rand.NextDouble() < 0.02) GenerateTree(x, columnHeight, z);
                         if (y <= columnHeight - 13) type = BlockType.LAVA;
                         if (type != BlockType.EMPTY)
                         {
@@ -88,12 +76,67 @@ namespace DevDeadly
                             SolidBlockAABBs.Add(block.AABB);
                         }
                         else
-                        {
                             chunkBlocks[x, y, z] = null;
-                        }
+                    }
+                    if (columnHeight > 0 && columnHeight < HEIGHT - 8 && rand.NextDouble() < 0.02)
+                        GenerateTree(x, columnHeight, z);
+                }
+            }
+        }
+
+        private void GenerateTree(int x, int groundY, int z)
+        {
+            int trunkHeight = rand.Next(5, 8);
+
+            for (int y = 0; y < trunkHeight; y++)
+            {
+                int ty = groundY + y;
+                if (ty < HEIGHT)
+                    SetBlock(x, ty, z, BlockType.WOOD);
+            }
+
+            int topY = groundY + trunkHeight;
+            int leafRadius = 3;
+
+            for (int dx = -leafRadius; dx <= leafRadius; dx++)
+            {
+                for (int dz = -leafRadius; dz <= leafRadius; dz++)
+                {
+                    for (int dy = -1; dy <= 3; dy++)
+                    {
+                        int nx = x + dx;
+                        int ny = topY + dy;
+                        int nz = z + dz;
+
+                        if (nx < 0 || nx >= SIZE || ny < 0 || ny >= HEIGHT || nz < 0 || nz >= SIZE) continue;
+
+                        float dist = MathF.Sqrt(dx * dx + dy * dy * 2 + dz * dz);
+                        if (dist <= leafRadius && chunkBlocks[nx, ny, nz] == null)
+                            SetBlock(nx, ny, nz, BlockType.LEAVES);
                     }
                 }
             }
+
+            for (int dy = 0; dy <= 2; dy++)
+            {
+                int capY = topY + 3 + dy;
+                int capRadius = 1 - dy;
+                for (int dx = -capRadius; dx <= capRadius; dx++)
+                    for (int dz = -capRadius; dz <= capRadius; dz++)
+                    {
+                        int nx = x + dx;
+                        int nz2 = z + dz;
+                        if (nx >= 0 && nx < SIZE && capY < HEIGHT && nz2 >= 0 && nz2 < SIZE && chunkBlocks[nx, capY, nz2] == null)
+                            SetBlock(nx, capY, nz2, BlockType.LEAVES);
+                    }
+            }
+        }
+
+        private void SetBlock(int x, int y, int z, BlockType type)
+        {
+            var block = new Block(new Vector3(x, y, z), type);
+            chunkBlocks[x, y, z] = block;
+            SolidBlockAABBs.Add(block.AABB);
         }
 
         private void GenFaces()
@@ -106,30 +149,12 @@ namespace DevDeadly
                     {
                         var block = chunkBlocks[x, y, z];
                         if (block == null || block.type == BlockType.EMPTY) continue;
-
-                        // LEFT
-                        if (x == 0 || chunkBlocks[x - 1, y, z] == null)
-                            IntegrateFace(block, Faces.LEFT);
-
-                        // RIGHT
-                        if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null)
-                            IntegrateFace(block, Faces.RIGHT);
-
-                        // BOTTOM
-                        if (y == 0 || chunkBlocks[x, y - 1, z] == null)
-                            IntegrateFace(block, Faces.BOTTOM);
-
-                        // TOP
-                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null)
-                            IntegrateFace(block, Faces.TOP);
-
-                        // FRONT
-                        if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null)
-                            IntegrateFace(block, Faces.FRONT);
-
-                        // BACK
-                        if (z == 0 || chunkBlocks[x, y, z - 1] == null)
-                            IntegrateFace(block, Faces.BACK);
+                        if (x == 0 || chunkBlocks[x - 1, y, z] == null) IntegrateFace(block, Faces.LEFT);
+                        if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null) IntegrateFace(block, Faces.RIGHT);
+                        if (y == 0 || chunkBlocks[x, y - 1, z] == null) IntegrateFace(block, Faces.BOTTOM);
+                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null) IntegrateFace(block, Faces.TOP);
+                        if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null) IntegrateFace(block, Faces.FRONT);
+                        if (z == 0 || chunkBlocks[x, y, z - 1] == null) IntegrateFace(block, Faces.BACK);
                     }
                 }
             }
@@ -138,16 +163,12 @@ namespace DevDeadly
         private void IntegrateFace(Block block, Faces face)
         {
             FaceData data = block.GetFace(face);
-
             chunkVerts.AddRange(data.vertices);
             chunkUVs.AddRange(data.uv);
-
             int layer = TextureData.GetLayer(block.type);
             for (int i = 0; i < 4; i++) chunkLayers.Add(layer);
-
             Vector3 normal = GetFaceNormal(face);
             for (int i = 0; i < data.vertices.Count; i++) chunkNormals.Add(normal);
-
             int baseIndex = chunkVerts.Count - data.vertices.Count;
             chunkIndices.Add((uint)(baseIndex + 0));
             chunkIndices.Add((uint)(baseIndex + 1));
@@ -171,52 +192,11 @@ namespace DevDeadly
             };
         }
 
-        private void GenerateTree(int x, int groundY, int z)
-        {
-            int height = rand.Next(4, 7);
-
-            for (int y = 0; y < height; y++)
-            {
-                int trunkY = groundY + y;
-                if (trunkY < HEIGHT)
-                    chunkBlocks[x, trunkY, z] = new Block(new Vector3(x, trunkY, z), BlockType.WOOD);
-            };
-           
-
-            int radius = 2;
-            for (int dx = -radius; dx <= radius; dx++)
-            {
-                for (int dz = -radius; dz <= radius; dz++)
-                {
-                    for (int dy = -radius; dy <= radius; dy++)
-                    {
-                        int nx = x + dx;
-                        int ny = groundY + height - 1 + dy;
-                        int nz = z + dz;
-
-                        if (nx >= 0 && nx < SIZE &&
-                            ny >= 0 && ny < HEIGHT &&
-                            nz >= 0 && nz < SIZE)
-                        {
-                            if (dx * dx + dy * dy + dz * dz <= radius * radius + 1)
-                            {
-                                if (chunkBlocks[nx, ny, nz] == null)
-                                {
-                                    chunkBlocks[nx, ny, nz] = new Block(new Vector3(nx, ny, nz), BlockType.LEAVES);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         private void BuildChunk()
         {
             VAO = GL.GenVertexArray();
             GL.BindVertexArray(VAO);
 
-            // VBOs
             chunkVertexVBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, chunkVertexVBO);
             GL.BufferData(BufferTarget.ArrayBuffer, chunkVerts.Count * Vector3.SizeInBytes, chunkVerts.ToArray(), BufferUsageHint.StaticDraw);
@@ -246,11 +226,11 @@ namespace DevDeadly
             GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
 
             textureID = LoadTextureArray(new string[] {
-                "ces.jpg",    // Layer 0
-                "graves.jpg", // Layer 1
-                "Wood.jpg",   // Layer 2
-                "plo.png",    // Layer 3
-                "lavas.jpg",  // Layer 4
+                "ces.jpg",
+                "graves.jpg",
+                "Wood.jpg",
+                "plo.png",
+                "lavas.jpg",
             });
 
             indexCount = (uint)chunkIndices.Count;
@@ -261,44 +241,28 @@ namespace DevDeadly
         {
             int textureID = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2DArray, textureID);
-
             using (var img = new System.Drawing.Bitmap(filePaths[0]))
             {
                 int width = img.Width;
                 int height = img.Height;
-
-                GL.TexImage3D(TextureTarget.Texture2DArray, 0,
-                    PixelInternalFormat.Rgba, width, height, filePaths.Length,
-                    0, OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
-                    PixelType.UnsignedByte, IntPtr.Zero);
-
+                GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, filePaths.Length, 0, OpenTK.Graphics.OpenGL4.PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
                 for (int i = 0; i < filePaths.Length; i++)
                 {
                     using (var bmp = new System.Drawing.Bitmap(filePaths[i]))
                     {
                         if (bmp.Width != width || bmp.Height != height)
                             throw new Exception($"La textura {filePaths[i]} debe tener el mismo tamaño ({width}x{height})");
-
-                        var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height),
-                            System.Drawing.Imaging.ImageLockMode.ReadOnly,
-                            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-                        GL.TexSubImage3D(TextureTarget.Texture2DArray, 0,
-                            0, 0, i, width, height, 1,
-                            OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
-                            PixelType.UnsignedByte, data.Scan0);
-
+                        var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                        GL.TexSubImage3D(TextureTarget.Texture2DArray, 0, 0, 0, i, width, height, 1, OpenTK.Graphics.OpenGL4.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
                         bmp.UnlockBits(data);
                     }
                 }
-
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
                 GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
             }
-
             return textureID;
         }
 
@@ -310,7 +274,6 @@ namespace DevDeadly
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2DArray, textureID);
             program.SetInt("atlasArray", 0);
-
             GL.Enable(EnableCap.DepthTest);
             GL.DrawElements(PrimitiveType.Triangles, chunkIndices.Count, DrawElementsType.UnsignedInt, 0);
         }
@@ -332,7 +295,6 @@ namespace DevDeadly
             chunkNormals.Clear();
             SolidBlockAABBs.Clear();
             chunkLayers.Clear();
-
             GenFaces();
             BuildChunk();
         }
