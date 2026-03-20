@@ -76,6 +76,12 @@ namespace DevDeadly.Shaders
             GL.Uniform1(location, value);
         }
 
+        public void SetFloat(string name, float value)
+        {
+            int location = GL.GetUniformLocation(Handle, name);
+            GL.Uniform1(location, value);
+        }
+
         public void VertLocation(string name, int value)
         {
             int vertexColorLocation = GL.GetUniformLocation(shader.Handle, "ourColor");

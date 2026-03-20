@@ -12,6 +12,7 @@ namespace DevDeadly
         private List<uint> chunkIndices;
         private List<float> chunkLayers;
         private List<Vector3> chunkNormals;
+        private List<float> chunkAO;
 
         private int VAO;
         private int chunkVertexVBO;
@@ -36,6 +37,7 @@ namespace DevDeadly
             chunkIndices = new List<uint>();
             chunkLayers = new List<float>();
             chunkNormals = new List<Vector3>();
+            chunkAO = new List<float>();
             float[,] heightmap = GetChunk();
             GenBlocks(heightmap);
             GenFaces();
@@ -149,26 +151,95 @@ namespace DevDeadly
                     {
                         var block = chunkBlocks[x, y, z];
                         if (block == null || block.type == BlockType.EMPTY) continue;
-                        if (x == 0 || chunkBlocks[x - 1, y, z] == null) IntegrateFace(block, Faces.LEFT);
-                        if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null) IntegrateFace(block, Faces.RIGHT);
-                        if (y == 0 || chunkBlocks[x, y - 1, z] == null) IntegrateFace(block, Faces.BOTTOM);
-                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null) IntegrateFace(block, Faces.TOP);
-                        if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null) IntegrateFace(block, Faces.FRONT);
-                        if (z == 0 || chunkBlocks[x, y, z - 1] == null) IntegrateFace(block, Faces.BACK);
+                        if (x == 0 || chunkBlocks[x - 1, y, z] == null) IntegrateFace(block, Faces.LEFT, x, y, z);
+                        if (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == null) IntegrateFace(block, Faces.RIGHT, x, y, z);
+                        if (y == 0 || chunkBlocks[x, y - 1, z] == null) IntegrateFace(block, Faces.BOTTOM, x, y, z);
+                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == null) IntegrateFace(block, Faces.TOP, x, y, z);
+                        if (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == null) IntegrateFace(block, Faces.FRONT, x, y, z);
+                        if (z == 0 || chunkBlocks[x, y, z - 1] == null) IntegrateFace(block, Faces.BACK, x, y, z);
                     }
                 }
             }
         }
 
-        private void IntegrateFace(Block block, Faces face)
+        private static readonly Dictionary<Faces, (Vector3i s1, Vector3i s2, Vector3i corner)[]> aoOffsets =
+        new Dictionary<Faces, (Vector3i, Vector3i, Vector3i)[]>
+{
+            { Faces.FRONT, new[] {
+                (new Vector3i(-1, 0, 1),  new Vector3i( 0,  1, 1),  new Vector3i(-1,  1, 1)),
+                (new Vector3i( 1, 0, 1),  new Vector3i( 0,  1, 1),  new Vector3i( 1,  1, 1)),
+                (new Vector3i( 1, 0, 1),  new Vector3i( 0, -1, 1),  new Vector3i( 1, -1, 1)),
+                (new Vector3i(-1, 0, 1),  new Vector3i( 0, -1, 1),  new Vector3i(-1, -1, 1)),
+            }},
+            { Faces.BACK, new[] {
+                (new Vector3i( 1, 0, -1), new Vector3i( 0,  1, -1), new Vector3i( 1,  1, -1)),
+                (new Vector3i(-1, 0, -1), new Vector3i( 0,  1, -1), new Vector3i(-1,  1, -1)),
+                (new Vector3i(-1, 0, -1), new Vector3i( 0, -1, -1), new Vector3i(-1, -1, -1)),
+                (new Vector3i( 1, 0, -1), new Vector3i( 0, -1, -1), new Vector3i( 1, -1, -1)),
+            }},
+            { Faces.LEFT, new[] {
+                (new Vector3i(-1, 0, -1), new Vector3i(-1,  1, 0),  new Vector3i(-1,  1, -1)),
+                (new Vector3i(-1, 0,  1), new Vector3i(-1,  1, 0),  new Vector3i(-1,  1,  1)),
+                (new Vector3i(-1, 0,  1), new Vector3i(-1, -1, 0),  new Vector3i(-1, -1,  1)),
+                (new Vector3i(-1, 0, -1), new Vector3i(-1, -1, 0),  new Vector3i(-1, -1, -1)),
+            }},
+            { Faces.RIGHT, new[] {
+                (new Vector3i(1, 0,  1),  new Vector3i(1,  1, 0),   new Vector3i(1,  1,  1)),
+                (new Vector3i(1, 0, -1),  new Vector3i(1,  1, 0),   new Vector3i(1,  1, -1)),
+                (new Vector3i(1, 0, -1),  new Vector3i(1, -1, 0),   new Vector3i(1, -1, -1)),
+                (new Vector3i(1, 0,  1),  new Vector3i(1, -1, 0),   new Vector3i(1, -1,  1)),
+            }},
+            { Faces.TOP, new[] {
+                (new Vector3i(-1, 1, 0),  new Vector3i(0, 1, -1),   new Vector3i(-1, 1, -1)),
+                (new Vector3i( 1, 1, 0),  new Vector3i(0, 1, -1),   new Vector3i( 1, 1, -1)),
+                (new Vector3i( 1, 1, 0),  new Vector3i(0, 1,  1),   new Vector3i( 1, 1,  1)),
+                (new Vector3i(-1, 1, 0),  new Vector3i(0, 1,  1),   new Vector3i(-1, 1,  1)),
+            }},
+            { Faces.BOTTOM, new[] {
+                (new Vector3i(-1, -1, 0), new Vector3i(0, -1, -1),  new Vector3i(-1, -1, -1)),
+                (new Vector3i( 1, -1, 0), new Vector3i(0, -1, -1),  new Vector3i( 1, -1, -1)),
+                (new Vector3i( 1, -1, 0), new Vector3i(0, -1,  1),  new Vector3i( 1, -1,  1)),
+                (new Vector3i(-1, -1, 0), new Vector3i(0, -1,  1),  new Vector3i(-1, -1,  1)),
+            }},
+        };
+
+        private bool IsSolid(int x, int y, int z)
+        {
+            if (x < 0 || x >= SIZE || y < 0 || y >= HEIGHT || z < 0 || z >= SIZE) return false;
+            var b = chunkBlocks[x, y, z];
+            return b != null && b.type != BlockType.EMPTY;
+        }
+
+        private float ComputeAO(bool s1, bool s2, bool corner)
+        {
+            if (s1 && s2) return 0.5f;
+            int occ = (s1 ? 1 : 0) + (s2 ? 1 : 0) + (corner ? 1 : 0);
+            return 1.0f - occ * 0.17f;
+        }
+
+        private void IntegrateFace(Block block, Faces face, int bx, int by, int bz)
         {
             FaceData data = block.GetFace(face);
+
             chunkVerts.AddRange(data.vertices);
             chunkUVs.AddRange(data.uv);
+
             int layer = TextureData.GetLayer(block.type);
             for (int i = 0; i < 4; i++) chunkLayers.Add(layer);
+
             Vector3 normal = GetFaceNormal(face);
             for (int i = 0; i < data.vertices.Count; i++) chunkNormals.Add(normal);
+
+            var offsets = aoOffsets[face];
+            for (int i = 0; i < 4; i++)
+            {
+                var (s1off, s2off, coff) = offsets[i];
+                bool s1 = IsSolid(bx + s1off.X, by + s1off.Y, bz + s1off.Z);
+                bool s2 = IsSolid(bx + s2off.X, by + s2off.Y, bz + s2off.Z);
+                bool c = IsSolid(bx + coff.X, by + coff.Y, bz + coff.Z);
+                chunkAO.Add(ComputeAO(s1, s2, c));
+            }
+
             int baseIndex = chunkVerts.Count - data.vertices.Count;
             chunkIndices.Add((uint)(baseIndex + 0));
             chunkIndices.Add((uint)(baseIndex + 1));
@@ -224,6 +295,12 @@ namespace DevDeadly
             chunkIBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, chunkIBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, chunkIndices.Count * sizeof(uint), chunkIndices.ToArray(), BufferUsageHint.StaticDraw);
+
+            int ChunkAOVBO = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, ChunkAOVBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, chunkAO.Count * sizeof(float), chunkAO.ToArray(), BufferUsageHint.StaticDraw);
+            GL.VertexAttribPointer(4,1, VertexAttribPointerType.Float, false, 0, 0);
+            GL.EnableVertexAttribArray(4);
 
             textureID = LoadTextureArray(new string[] {
                 "ces.jpg",
@@ -295,6 +372,7 @@ namespace DevDeadly
             chunkNormals.Clear();
             SolidBlockAABBs.Clear();
             chunkLayers.Clear();
+            chunkAO.Clear();
             GenFaces();
             BuildChunk();
         }

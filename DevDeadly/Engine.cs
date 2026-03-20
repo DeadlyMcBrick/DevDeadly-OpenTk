@@ -38,14 +38,18 @@ namespace DevDeadly
         private int EBOCreate;
         private int VAOMain;
         private double _fpsTimer;
+        private Vector3 light_Pos;
         public int nrAttribute;
         public int width, height;
         public bool OptionCursorState;
 
+        private float _timeOfDay = 0.3f;
+        private float _dayDuration = 120.0f;
+        private int VAOSky;
+
         private Stopwatch timer = Stopwatch.StartNew();
         public AudioPlayer Pop;
 
-        private readonly Vector3 lightPos = new Vector3(2.0f, 4.0f, 2.0f);
         public Matrix4 projection;
         public Matrix4 model;
         public Matrix4 view;
@@ -58,6 +62,7 @@ namespace DevDeadly
         Shader create;
         Shader rency;
         Shader itemObject;
+        Shader skyShader;
         Camera camera;
         Chunk chunk;
         Texture createhud;
@@ -73,6 +78,9 @@ namespace DevDeadly
             var IsCursorGrabbed = false;
 
             MouseState mouse = MouseState;
+            _timeOfDay += (float)(e.Time / _dayDuration);
+            if (_timeOfDay >= 1.0f) _timeOfDay -= 1.0f;
+
             camera.Update(input, mouse, e);
             world.GenerateInitialChunks(camera.position);
 
@@ -125,9 +133,11 @@ namespace DevDeadly
             base.OnLoad();
 
             Title += ": OpenTk Version:" + GL.GetString(StringName.Version);
+
             chunk = new Chunk(new Vector3(0, 0, 0));
             _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
             camera = new Camera(100f, 100f, new Vector3(0, 0, 0));
+            skyShader = new Shader(GLSL.SkyVert, GLSL.SkyFrag);
             lightingShader = new Shader(GLSL.vertexShaderSource, GLSL.fragmentShaderSource);
             lampShader = new Shader(GLSL.LampVert, GLSL.LampFrags);
             cloudShader = new Shader(GLSL.CloudVerts, GLSL.CloudFrags);
@@ -279,13 +289,25 @@ namespace DevDeadly
 
             //Wraps lines boxes
             float[] borderColor = { 1.0f, 1.0f, 0.0f, 1.0f };
+            float[] skyQad = { -1f, -1f, 1f, -1f, 1f, 1f, -1f, -1f, 1f, 1f, -1f, 1f };
+
+            VAOSky = GL.GenVertexArray();
+            int VBOSky = GL.GenBuffer();
+            GL.BindVertexArray(VAOSky);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOSky);
+            GL.BufferData(BufferTarget.ArrayBuffer, skyQad.Length * sizeof(float), skyQad, BufferUsageHint.StaticDraw);
+            int skyPosLoc = skyShader.GetAttribLocation("aPos");
+            GL.VertexAttribPointer(skyPosLoc, 2, VertexAttribPointerType.Float, false, 2 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(skyPosLoc);
+            GL.BindVertexArray(0);
+
 
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            GL.ClearColor(0.53f, 0.81f, 0.92f, 1.0f);
+            GL.ClearColor(0f, 0f, 0f, 1f);
             GL.GetInteger(GetPName.MaxVertexAttribs, out nrAttribute);
             Console.WriteLine($"Amount of cores using right now: {nrAttribute}");
 
@@ -304,6 +326,37 @@ namespace DevDeadly
             cloudShader.Dispose();
         }
 
+        private Vector3 ComputeSkyHorizonColor(float t)
+        {
+            Vector3 nightH = new Vector3(0.025f, 0.025f, 0.07f);
+            Vector3 dawnH = new Vector3(0.95f, 0.45f, 0.20f);
+            Vector3 dayH = new Vector3(0.65f, 0.82f, 0.98f);
+            Vector3 duskH = new Vector3(1.00f, 0.35f, 0.05f);
+            if (t < 0.2f) return nightH;
+            if (t < 0.3f) return Vector3.Lerp(nightH, dawnH, (t - 0.2f) * 10f);
+            if (t < 0.4f) return Vector3.Lerp(dawnH, dayH, (t - 0.3f) * 10f);
+            if (t < 0.6f) return dayH;
+            if (t < 0.7f) return Vector3.Lerp(dayH, duskH, (t - 0.6f) * 10f);
+            if (t < 0.8f) return Vector3.Lerp(duskH, nightH, (t - 0.7f) * 10f);
+            return nightH;
+        }
+
+        private Vector3 ComputeLightColor(float t)
+        {
+            float day = Math.Clamp((t - 0.25f) / 0.1f, 0f, 1f) * (1f - Math.Clamp((t - 0.7f) / 0.1f, 0f, 1f));
+            Vector3 sunrise = new Vector3(1.0f, 0.65f, 0.30f);
+            Vector3 noon = new Vector3(1.0f, 0.97f, 0.88f);
+            Vector3 night = new Vector3(0.05f, 0.07f, 0.15f);
+            float noonFactor = (float)Math.Sin(day * Math.PI);
+            return Vector3.Lerp(night, Vector3.Lerp(sunrise, noon, noonFactor), day);
+        }
+
+        private float ComputeAmbientStrength(float t)
+        {
+            float day = Math.Clamp((t - 0.25f) / 0.1f, 0f, 1f) * (1f - Math.Clamp((t - 0.7f) / 0.1f, 0f, 1f));
+            return 0.04f + day * 0.22f;
+        }
+
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             base.OnRenderFrame(args);
@@ -315,7 +368,30 @@ namespace DevDeadly
                 _fpsTimer = 0;
             }
 
+            float sunAngle = (_timeOfDay - 0.5f) * MathHelper.TwoPi;
+            light_Pos = new Vector3(MathF.Sin(sunAngle), MathF.Cos(sunAngle), 0.1f) * 800f;
+            Vector3 sunDir = Vector3.Normalize(light_Pos);
+            Vector3 fogColor = ComputeSkyHorizonColor(_timeOfDay);
+            Vector3 dynamicLightColor = ComputeLightColor(_timeOfDay);
+            float ambientStr = ComputeAmbientStrength(_timeOfDay);
+
+            GL.ClearColor(fogColor.X, fogColor.Y, fogColor.Z, 1f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+
+            GL.DepthMask(false);
+            GL.Disable(EnableCap.DepthTest);
+            skyShader.Use();
+            skyShader.SetFloat("timeOfDay", _timeOfDay);
+            skyShader.SetVector3("sunDir", sunDir);
+            skyShader.SetVector3("camFront", camera.front);
+            skyShader.SetVector3("camRight", camera.right);
+            skyShader.SetVector3("camUp", camera.up);
+            skyShader.SetFloat("fovTan", MathF.Tan(MathHelper.DegreesToRadians(35.0f)));
+            skyShader.SetFloat("aspectRatio", (float)width / height);
+            GL.BindVertexArray(VAOSky);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
+            GL.BindVertexArray(0);
+            GL.DepthMask(true);
             GL.Enable(EnableCap.DepthTest);
 
             Matrix4 viewCloud = camera.GetViewMatrix();
@@ -364,12 +440,16 @@ namespace DevDeadly
             lightingShader.SetMatrix4("model", model);
             lightingShader.SetMatrix4("view", view);
             lightingShader.SetMatrix4("projection", projection);
-            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightPos"), lightPos);
-            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightColor"), new Vector3(1.0f, 1.0f, 0.0f));
+            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightPos"), light_Pos);
+            GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "lightColor"), dynamicLightColor);
             GL.Uniform3(GL.GetUniformLocation(lightingShader.Handle, "viewPos"), camera.position);
+            lightingShader.SetFloat("fogStart", 55f);
+            lightingShader.SetFloat("fogEnd", 125f);
+            lightingShader.SetVector3("fogColor", fogColor);
+            lightingShader.SetFloat("ambientStrength", ambientStr);
 
             //chunk.Render(lightingShader);  //AABB Collition on
-            world.RenderAll(lightingShader);  
+            world.RenderAll(lightingShader);
 
             int modelLocation = GL.GetUniformLocation(lightingShader.Handle, "model");
             int viewLocation = GL.GetUniformLocation(lightingShader.Handle, "view");
@@ -409,7 +489,7 @@ namespace DevDeadly
             GL.Enable(EnableCap.DepthTest);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-    
+
             int modelLampLocation = GL.GetUniformLocation(lampShader.Handle, "model");
             int viewLampLocation = GL.GetUniformLocation(lampShader.Handle, "view");
             int projectionLampLocation = GL.GetUniformLocation(lampShader.Handle, "projection");
