@@ -43,6 +43,10 @@ namespace DevDeadly
         public int width, height;
         public bool OptionCursorState;
 
+        private const int ShadowMapSize = 2048;
+        private int _shadowFBO;
+        private int _shadowDepthTex;
+
         private float _timeOfDay = 0.3f;
         private float _dayDuration = 120.0f;
         private int VAOSky;
@@ -53,6 +57,7 @@ namespace DevDeadly
         public Matrix4 projection;
         public Matrix4 model;
         public Matrix4 view;
+        private Matrix4 _lightSpaceMatrix;
         public static int TextureID;
 
         Shader lightingShader;
@@ -63,6 +68,8 @@ namespace DevDeadly
         Shader rency;
         Shader itemObject;
         Shader skyShader;
+        Shader shadowShader;
+
         Camera camera;
         Chunk chunk;
         Texture createhud;
@@ -137,6 +144,7 @@ namespace DevDeadly
             chunk = new Chunk(new Vector3(0, 0, 0));
             _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
             camera = new Camera(100f, 100f, new Vector3(0, 0, 0));
+            shadowShader = new Shader(GLSL.ShadowVert, GLSL.ShadowFrag);
             skyShader = new Shader(GLSL.SkyVert, GLSL.SkyFrag);
             lightingShader = new Shader(GLSL.vertexShaderSource, GLSL.fragmentShaderSource);
             lampShader = new Shader(GLSL.LampVert, GLSL.LampFrags);
@@ -301,6 +309,26 @@ namespace DevDeadly
             GL.EnableVertexAttribArray(skyPosLoc);
             GL.BindVertexArray(0);
 
+            _shadowDepthTex = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, _shadowDepthTex);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent,
+                ShadowMapSize, ShadowMapSize, 0,
+                PixelFormat.DepthComponent, PixelType.Float, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToBorder);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToBorder);
+            float[] shadowBorder = { 1f, 1f, 1f, 1f };
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, shadowBorder);
+
+            _shadowFBO = GL.GenFramebuffer();
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _shadowFBO);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
+                TextureTarget.Texture2D, _shadowDepthTex, 0);
+            GL.DrawBuffer(DrawBufferMode.None);
+            GL.ReadBuffer(ReadBufferMode.None);
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+
 
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
@@ -368,6 +396,13 @@ namespace DevDeadly
                 _fpsTimer = 0;
             }
 
+            float orthoSize = 160f;
+            Vector3 lightDir = Vector3.Normalize(light_Pos);
+            Vector3 upVec = MathF.Abs(Vector3.Dot(lightDir, Vector3.UnitY)) > 0.97f ? Vector3.UnitX : Vector3.UnitY;
+            Matrix4 lightView = Matrix4.LookAt(camera.position + lightDir * 250f, camera.position, upVec);
+            Matrix4 lightProj = Matrix4.CreateOrthographicOffCenter(-orthoSize, orthoSize, -orthoSize, orthoSize, 10f, 600f);
+            _lightSpaceMatrix = lightView * lightProj;
+
             float sunAngle = (_timeOfDay - 0.5f) * MathHelper.TwoPi;
             light_Pos = new Vector3(MathF.Sin(sunAngle), MathF.Cos(sunAngle), 0.1f) * 800f;
             Vector3 sunDir = Vector3.Normalize(light_Pos);
@@ -393,6 +428,20 @@ namespace DevDeadly
             GL.BindVertexArray(0);
             GL.DepthMask(true);
             GL.Enable(EnableCap.DepthTest);
+
+            GL.Viewport(0, 0, ShadowMapSize, ShadowMapSize);
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _shadowFBO);
+            GL.Clear(ClearBufferMask.DepthBufferBit);
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Front);
+            shadowShader.Use();
+            shadowShader.SetMatrix4("lightSpaceMatrix", _lightSpaceMatrix);
+            world.RenderAll(shadowShader);
+            GL.CullFace(CullFaceMode.Back);
+            GL.Disable(EnableCap.CullFace);
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            GL.Viewport(0, 0, width, height);
 
             Matrix4 viewCloud = camera.GetViewMatrix();
             Matrix4 projectionCloud = camera.GetProjectionMatrix();
@@ -447,6 +496,11 @@ namespace DevDeadly
             lightingShader.SetFloat("fogEnd", 125f);
             lightingShader.SetVector3("fogColor", fogColor);
             lightingShader.SetFloat("ambientStrength", ambientStr);
+
+            lightingShader.SetMatrix4("lightSpaceMatrix", _lightSpaceMatrix);
+            GL.ActiveTexture(TextureUnit.Texture5);
+            GL.BindTexture(TextureTarget.Texture2D, _shadowDepthTex);
+            lightingShader.SetInt("shadowMap", 5);
 
             //chunk.Render(lightingShader);  //AABB Collition on
             world.RenderAll(lightingShader);

@@ -303,11 +303,11 @@ namespace DevDeadly
             GL.EnableVertexAttribArray(4);
 
             textureID = LoadTextureArray(new string[] {
-                "ces.jpg",
+                "Grass.png",
                 "graves.jpg",
                 "Wood.jpg",
                 "plo.png",
-                "lavas.jpg",
+                "trunk.png",
             });
 
             indexCount = (uint)chunkIndices.Count;

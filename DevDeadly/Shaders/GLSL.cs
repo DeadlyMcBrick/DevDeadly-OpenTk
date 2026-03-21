@@ -15,10 +15,12 @@
             out vec3 Normal;
             out vec3 FragPos;
             out float vAO;
+            out vec4 FragPosLightSpace;
 
             uniform mat4 model;
             uniform mat4 view;
             uniform mat4 projection;
+            uniform mat4 lightSpaceMatrix;
 
             void main()
             {
@@ -28,6 +30,7 @@
                 Normal = normalize(mat3(transpose(inverse(model))) * aNormal);
                 FragPos = vec3(vec4(aPosition, 1.0) * model);
                 vAO = aAO;
+                FragPosLightSpace = vec4(aPosition, 1.0) * model * lightSpaceMatrix;
             }";
 
         public static string fragmentShaderSource =
@@ -37,9 +40,11 @@
             in vec3 Normal;
             in vec3 FragPos;
             in float vAO;
+            in vec4 FragPosLightSpace;
             out vec4 FragColor;
 
             uniform sampler2DArray atlasArray;
+            uniform sampler2D shadowMap;
             uniform vec3 lightPos;
             uniform vec3 lightColor;
             uniform vec3 viewPos;
@@ -48,29 +53,45 @@
             uniform vec3 fogColor;
             uniform float ambientStrength;
 
+            float ShadowCalc(vec4 fragPosLS, vec3 norm, vec3 lightDir)
+            {
+                vec3 proj = fragPosLS.xyz / fragPosLS.w;
+                proj = proj * 0.5 + 0.5;
+                if (proj.z > 1.0) return 0.0;
+                float bias = max(0.005 * (1.0 - dot(norm, lightDir)), 0.0015);
+                float shadow = 0.0;
+                vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+                for (int x = -2; x <= 2; x++)
+                {
+                    for (int y = -2; y <= 2; y++)
+                    {
+                        float pcfDepth = texture(shadowMap, proj.xy + vec2(x, y) * texelSize).r;
+                        shadow += proj.z - bias > pcfDepth ? 1.0 : 0.0;
+                    }
+                }
+                return shadow / 25.0;
+            }
+
             void main()
             {
                 vec3 ambient = ambientStrength * lightColor;
-
                 vec3 norm = normalize(Normal);
                 vec3 lightDir = normalize(lightPos - FragPos);
                 float diff = max(dot(norm, lightDir), 0.0);
                 vec3 diffuse = diff * lightColor;
-
                 float specularStrength = 0.3;
                 vec3 viewDir = normalize(viewPos - FragPos);
                 vec3 reflectDir = reflect(-lightDir, norm);
                 float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
                 vec3 specular = specularStrength * spec * lightColor;
-
-                vec3 lighting = (ambient + diffuse + specular) * vAO;
+                float shadow = ShadowCalc(FragPosLightSpace, norm, lightDir);
+                vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * vAO;
                 vec4 texColor = texture(atlasArray, vec3(TexCoord, TexLayer));
                 vec4 baseColor = vec4(lighting, 1.0) * texColor;
-
                 float dist = length(FragPos - viewPos);
                 float fogFactor = clamp((dist - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
                 FragColor = mix(baseColor, vec4(fogColor, 1.0), fogFactor);
-            }";
+            }"; 
 
         public static string LampVert =
 
@@ -336,5 +357,19 @@
 
                 FragColor = vec4(skyColor, 1.0);
             }";
+
+        public static string ShadowVert =
+            @"#version 330 core
+            layout(location = 0) in vec3 aPosition;
+            uniform mat4 model;
+            uniform mat4 lightSpaceMatrix;
+            void main()
+            {
+                gl_Position = vec4(aPosition, 1.0) * model * lightSpaceMatrix;
+            }";
+
+        public static string ShadowFrag =
+            @"#version 330 core
+            void main() {}";
     }
 }
