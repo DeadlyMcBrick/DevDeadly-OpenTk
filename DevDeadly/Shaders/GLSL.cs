@@ -119,33 +119,6 @@
                 FragColor = vec4(lightColor, 1.0f);
             }";
 
-        public static string CloudVerts =
-
-            @"#version 330 core
-            layout(location = 0) in vec3 Cloud;
-            layout(location = 1) in vec2 aTexCoordCloud;
-            uniform mat4 modelcloud;
-            uniform mat4 viewcloud;
-            uniform mat4 projectioncloud;
-            out vec2 TexCoord;
-
-            void main()
-            {
-                gl_Position = vec4(Cloud, 1.0) * modelcloud * viewcloud * projectioncloud;
-                TexCoord = aTexCoordCloud;
-            }";
-
-        public static string CloudFrags =
-
-            @"#version 330 core
-            in vec2 TexCoord;
-            out vec4 FragColor;
-
-            void main()
-            {
-                FragColor = vec4(0.95, 0.95, 1.0, 0.4);       
-            }";
-
         public static string InventoryVerts =
 
             @"#version 330 core
@@ -509,15 +482,7 @@
             float specular = aTexCoord * aNormal;
             rez_color = vec4(aVertexArrayObject * 2/ 23);
             FragColor = vec3(rez_color(model * view * projection) 1.0f);
-    
-
-
-
-"
-
-
-
-            ;
+";
 
     }
 }

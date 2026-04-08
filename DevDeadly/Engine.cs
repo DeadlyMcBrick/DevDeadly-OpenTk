@@ -28,7 +28,6 @@ namespace DevDeadly
         private bool _hideCreate = true;
         private int VAOLamp;
         private int VBOLamp;
-        private int VAOCloud;
         private int VAOInventory;
         private int EBOInventory;
         private int VAOTransparency;
@@ -61,8 +60,6 @@ namespace DevDeadly
         public static int TextureID;
 
         Shader lightingShader;
-        Shader lampShader;
-        Shader cloudShader;
         Shader inventory;
         Shader create;
         Shader rency;
@@ -147,8 +144,6 @@ namespace DevDeadly
             shadowShader = new Shader(GLSL.ShadowVert, GLSL.ShadowFrag);
             skyShader = new Shader(GLSL.SkyVert, GLSL.SkyFrag);
             lightingShader = new Shader(GLSL.vertexShaderSource, GLSL.fragmentShaderSource);
-            lampShader = new Shader(GLSL.LampVert, GLSL.LampFrags);
-            cloudShader = new Shader(GLSL.CloudVerts, GLSL.CloudFrags);
             inventory = new Shader(GLSL.InventoryVerts, GLSL.InventoryFrags);
             create = new Shader(GLSL.CreationVerts, GLSL.CreationFrags);
             rency = new Shader(GLSL.TransparencyVerts, GLSL.TransparencyFrags);
@@ -190,40 +185,6 @@ namespace DevDeadly
             GL.BufferData(BufferTarget.ArrayBuffer,Draw.lampVertices.Length * sizeof(float), Draw.lampVertices, BufferUsageHint.StaticDraw);
             GL.EnableVertexAttribArray(3); // Normal en location = 3
             GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
-
-            int lampPosLocation = lampShader.GetAttribLocation("aPosition");
-            GL.EnableVertexAttribArray(lampPosLocation);
-            GL.VertexAttribPointer(lampPosLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
-
-            int posAttrib = lampShader.GetAttribLocation("aPos");
-            GL.EnableVertexAttribArray(posAttrib);
-            GL.VertexAttribPointer(posAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindVertexArray(0);
-
-            int AnormalTesting = lampShader.GetAttribLocation("aNormal");
-            //GL.EnableVertexAttribArray(8);
-            GL.VertexAttribPointer(AnormalTesting, 3, VertexAttribPointerType.Float, false, 9 * sizeof(float), 6 * sizeof(float));
-            GL.EnableVertexAttribArray(8);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindVertexArray(0);
-
-            //CLOUD
-            VAOCloud = GL.GenVertexArray();
-            int VBOCloud = GL.GenBuffer();
-
-            GL.BindVertexArray(VAOCloud);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBOCloud);
-            GL.BufferData(BufferTarget.ArrayBuffer, Draw.CloudsVertices.Length * sizeof(float), Draw.CloudsVertices, BufferUsageHint.StaticDraw);
-
-            int posCloud = cloudShader.GetAttribLocation("Cloud");
-            GL.VertexAttribPointer(posCloud, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(posCloud);
-
-            int posCoord = cloudShader.GetAttribLocation("aTexCoordCloud");
-            GL.VertexAttribPointer(posCoord, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(posCoord);
-            GL.BindVertexArray(0);
 
             //INVENTORY
             int VBOInventory = GL.GenBuffer();
@@ -329,7 +290,6 @@ namespace DevDeadly
             GL.ReadBuffer(ReadBufferMode.None);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
 
-
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
@@ -340,7 +300,6 @@ namespace DevDeadly
             Console.WriteLine($"Amount of cores using right now: {nrAttribute}");
 
             lightingShader.Use();
-            lampShader.Use();
             timer.Start();
         }
         protected override void OnUnload()
@@ -351,7 +310,6 @@ namespace DevDeadly
             GL.DeleteVertexArray(VertexArrayObject);
             GL.DeleteVertexArray(VAOLamp);
             lightingShader.Dispose();
-            cloudShader.Dispose();
         }
 
         private Vector3 ComputeSkyHorizonColor(float t)
@@ -443,25 +401,6 @@ namespace DevDeadly
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             GL.Viewport(0, 0, width, height);
 
-            Matrix4 viewCloud = camera.GetViewMatrix();
-            Matrix4 projectionCloud = camera.GetProjectionMatrix();
-            Vector3 elevation = new Vector3(0f, 15f, 0f);
-
-            foreach (var pos in Draw.cloudPositions)
-            {
-                float separationFactor = 2.5f;
-                Vector3 separatedPos = new Vector3(pos.X * separationFactor, pos.Y, pos.Z * separationFactor);
-                Vector3 elevatedPos = separatedPos + elevation;
-                Matrix4 modelCloud = Matrix4.CreateScale(20f, 20f, 20f) * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-90f)) * Matrix4.CreateTranslation(elevatedPos);
-
-                cloudShader.Use();
-                cloudShader.SetMatrix4("modelcloud", modelCloud);
-                cloudShader.SetMatrix4("viewcloud", camera.GetViewMatrix());
-                cloudShader.SetMatrix4("projectioncloud", camera.GetProjectionMatrix());
-                GL.BindVertexArray(VAOCloud);
-                GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
-            }
-
             //Cube Model and rotation
             //Matrix4 model = Matrix4.Identity;
             Matrix4 view = camera.GetViewMatrix();
@@ -471,17 +410,6 @@ namespace DevDeadly
             //yRot += 0.00f;
             //Matrix4 lampMatrix = Matrix4.Identity;
             Matrix4 lampMatrix = Matrix4.CreateTranslation(0f, 60f, 0f) + Matrix4.CreateScale(7f);
-
-            //Render cube with lighting
-            lampShader.Use();
-            lampShader.SetMatrix4("model", lampMatrix);
-            lampShader.SetMatrix4("view", camera.GetViewMatrix());
-            lampShader.SetMatrix4("projection", camera.GetProjectionMatrix());
-
-            GL.BindVertexArray(VAOLamp);
-            GL.UseProgram(lampShader.Handle);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-            GL.BindVertexArray(0);
 
             // Render chunk with texture (no lighting)
             lightingShader.Use();
@@ -543,26 +471,6 @@ namespace DevDeadly
             GL.Enable(EnableCap.DepthTest);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
             GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-
-            int modelLampLocation = GL.GetUniformLocation(lampShader.Handle, "model");
-            int viewLampLocation = GL.GetUniformLocation(lampShader.Handle, "view");
-            int projectionLampLocation = GL.GetUniformLocation(lampShader.Handle, "projection");
-
-            GL.UniformMatrix4(modelLampLocation, true, ref lampMatrix);
-            GL.UniformMatrix4(viewLampLocation, true, ref view);
-            GL.UniformMatrix4(projectionLampLocation, true, ref projection);
-
-            int modelCloudLocation = GL.GetUniformLocation(cloudShader.Handle, "modelcloud");
-            int viewCloudLocation = GL.GetUniformLocation(cloudShader.Handle, "viewcloud");
-            int projectionCloudLocation = GL.GetUniformLocation(cloudShader.Handle, "projectioncloud");
-
-            //GL.UniformMatrix4(modelCloudLocation, true, ref modelCloud);
-            GL.UniformMatrix4(viewCloudLocation, true, ref viewCloud);
-            GL.UniformMatrix4(projectionCloudLocation, true, ref projectionCloud);
-
-            GL.UniformMatrix4(modelLampLocation, true, ref lampMatrix);
-            GL.UniformMatrix4(viewLampLocation, true, ref view);
-            GL.UniformMatrix4(projectionLampLocation, true, ref projection);
 
             // Enable Docking
             if (_showGui)
